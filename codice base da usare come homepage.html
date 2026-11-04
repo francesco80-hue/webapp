@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Archivio audio</title>
+  <style>
+    :root {
+      --bg: #f5f7f3;
+      --panel: #ffffff;
+      --panel-alt: #eef5ef;
+      --line: #dfe9e1;
+      --text: #1a261f;
+      --muted: #5d6a63;
+      --green: #69d38a;
+      --green-soft: #eafaf0;
+      --orange: #f5b35d;
+      --orange-soft: #fff4e3;
+      --red: #ef6b5d;
+      --red-soft: #ffe8e4;
+      --blue: #81b7ff;
+      --shadow: rgba(18, 28, 21, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: max(20px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom));
+    }
+
+    main {
+      width: min(100%, 560px);
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 6px 18px var(--shadow);
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.7rem, 5vw, 2.3rem);
+      line-height: 1.1;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .legend {
+      list-style: none;
+      margin: 0 0 12px;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .legend li {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.orange { background: var(--orange); }
+    .dot.red { background: var(--red); }
+
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+
+    .mini-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      color: var(--text);
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .wd {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding-bottom: 4px;
+    }
+
+    .day {
+      min-height: 52px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .day:active { transform: scale(0.98); }
+    .day:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+    }
+
+    .day.green {
+      background: var(--green-soft);
+      border-color: #b7e8c4;
+    }
+    .day.orange {
+      background: var(--orange-soft);
+      border-color: #f0d292;
+    }
+    .day.red {
+      background: var(--red-soft);
+      border-color: #f2b3ab;
+    }
+    .day.muted {
+      background: #f4f7f5;
+      color: #b4bcb7;
+    }
+    .day.selected {
+      outline: 2px solid var(--blue);
+      outline-offset: 1px;
+    }
+    .day.today {
+      box-shadow: inset 0 0 0 1px rgba(129, 183, 255, 0.75);
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      font: inherit;
+      background: #f9fbf9;
+      color: var(--text);
+    }
+
+    .record-wrap {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .record-btn {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 8px solid rgba(67, 95, 76, 0.12);
+      background: var(--green);
+      color: #163426;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .record-btn.recording {
+      background: var(--red);
+      color: #2a120f;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      background: #f9fbf9;
+      color: var(--text);
+    }
+
+    audio {
+      width: 100%;
+      display: none;
+      margin-top: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      min-height: 54px;
+      border: none;
+      border-radius: 12px;
+      background: var(--green);
+      color: #163426;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      min-height: 26px;
+      text-align: center;
+      margin: 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .status.error { color: #c94c43; }
+    .status.success { color: #2f8f5d; }
+
+    .tiny {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <h1>Archivio audio</h1>
+      <p>Seleziona una data libera, registra dal microfono o carica un file audio.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Calendario</h2>
+      <ul class="legend">
+        <li><span class="dot green"></span> Libera</li>
+        <li><span class="dot orange"></span> Riservata</li>
+        <li><span class="dot red"></span> Conclusa</li>
+      </ul>
+
+      <div class="calendar-header">
+        <h2 id="monthLabel">Mese</h2>
+        <div>
+          <button id="prevMonth" class="mini-btn" type="button" aria-label="Mese precedente">‹</button>
+          <button id="nextMonth" class="mini-btn" type="button" aria-label="Mese successivo">›</button>
+        </div>
+      </div>
+
+      <div id="calendar" class="calendar-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <label for="dateInput">Data scelta</label>
+      <input id="dateInput" type="date" />
+      <p class="tiny">La prima data disponibile per i collaboratori è 15/11/2026. Il 12/11/2026 è riservato all’amministrazione.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Registra audio</h2>
+      <div class="record-wrap">
+        <button id="recordBtn" class="record-btn" type="button">Registra</button>
+      </div>
+      <audio id="audioPlayer" controls></audio>
+    </section>
+
+    <section class="panel">
+      <h2>Carica un file</h2>
+      <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.3gp,.amr" />
+    </section>
+
+    <button id="sendBtn" class="btn" type="button" disabled>Conferma registrazione</button>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <script>
+    const ADMIN_MODE = new URLSearchParams(location.search).get("admin") === "1";
+    const APP_URL = "https://TUO_DOMINIO.supabase.co/functions/v1";
+    const MIN_COLLAB_DATE = "2026-11-15";
+    const ADMIN_DATE = "2026-11-12";
+
+    const monthLabel = document.getElementById("monthLabel");
+    const calendarEl = document.getElementById("calendar");
+    const dateInput = document.getElementById("dateInput");
+    const prevMonthBtn = document.getElementById("prevMonth");
+    const nextMonthBtn = document.getElementById("nextMonth");
+    const recordBtn = document.getElementById("recordBtn");
+    const fileInput = document.getElementById("fileInput");
+    const audioPlayer = document.getElementById("audioPlayer");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("status");
+
+    let viewMonth = new Date(2026, 10, 1); // novembre 2026
+    let selectedDate = "";
+    let calendarData = {};
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordingStream = null;
+    let recordedBlob = null;
+    let selectedFile = null;
+
+    function setStatus(msg, kind = "") {
+      statusEl.textContent = msg;
+      statusEl.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function iso(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseISO(str) {
+      if (!str) return null;
+      const [y, m, d] = str.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function monthLabelText(date) {
+      return new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(date);
+    }
+
+    function dayState(dateStr) {
+      if (!dateStr) return "muted";
+
+      if (calendarData[dateStr]) return calendarData[dateStr];
+
+      const target = parseISO(dateStr);
+      const start = parseISO(MIN_COLLAB_DATE);
+
+      if (!target) return "muted";
+      if (dateStr === ADMIN_DATE && ADMIN_MODE) return "red";
+      if (target < start) return "red";
+      return "green";
+    }
+
+    async function loadCalendarFromSupabase() {
+      try {
+        const url = `${APP_URL}/audio-calendar?month=${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, "0")}`;
+        const res = await fetch(url, { method: "GET" });
+        if (!res.ok) throw new Error("Impossibile leggere calendario");
+        const data = await res.json();
+        calendarData = data.days || {};
+      } catch (e) {
+        calendarData = {};
+      }
+    }
+
+    function renderCalendar() {
+      monthLabel.textContent = monthLabelText(viewMonth);
+      calendarEl.innerHTML = "";
+
+      const weekdays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+      weekdays.forEach(day => {
+        const el = document.createElement("div");
+        el.className = "wd";
+        el.textContent = day;
+        calendarEl.appendChild(el);
+      });
+
+      const first = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+      const offset = (first.getDay() + 6) % 7;
+      const lastDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+
+      for (let i = 0; i < offset; i++) {
+        const filler = document.createElement("div");
+        filler.className = "day muted";
+        filler.disabled = true;
+        filler.setAttribute("aria-hidden", "true");
+        calendarEl.appendChild(filler);
+      }
+
+      for (let day = 1; day <= lastDay; day++) {
+        const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
+        const str = iso(d);
+        const state = dayState(str);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `day ${state}`;
+        btn.textContent = String(day);
+
+        if (selectedDate === str) btn.classList.add("selected");
+        if (iso(new Date()) === str) btn.classList.add("today");
+
+        const isSelectableByUser = !ADMIN_MODE && state === "green" && str >= MIN_COLLAB_DATE && str !== ADMIN_DATE;
+        const isSelectableByAdmin = ADMIN_MODE && (state === "green" || state === "red" || state === "orange");
+
+        if ((!ADMIN_MODE && !isSelectableByUser) || (ADMIN_MODE && !isSelectableByAdmin)) {
+          btn.disabled = true;
+        }
+
+        btn.addEventListener("click", () => {
+          if (!ADMIN_MODE && str !== ADMIN_DATE && state !== "green") {
+            setStatus("Questa data non è disponibile.", "error");
+            return;
+          }
+
+          if (!ADMIN_MODE && str === ADMIN_DATE) {
+            setStatus("Il 12/11/2026 è riservato all’amministrazione.", "error");
+            return;
+          }
+
+          selectedDate = str;
+          dateInput.value = str;
+          setStatus("Data selezionata.", "success");
+          renderCalendar();
+          enableSubmit();
+        });
+
+        calendarEl.appendChild(btn);
+      }
+    }
+
+    function enableSubmit() {
+      const ok = !!selectedDate && !!(recordedBlob || selectedFile) && !!dateInput.value;
+      sendBtn.disabled = !ok;
+    }
+
+    recordBtn.addEventListener("click", async () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        recordBtn.textContent = "Registra";
+        recordBtn.classList.remove("recording");
+        return;
+      }
+
+      try {
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+          throw new Error("Questo browser non supporta la registrazione.");
+        }
+
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm";
+
+        mediaRecorder = new MediaRecorder(recordingStream, { mimeType });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          recordedBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+          const url = URL.createObjectURL(recordedBlob);
+          audioPlayer.src = url;
+          audioPlayer.style.display = "block";
+          selectedFile = null;
+          fileInput.value = "";
+          setStatus("Registrazione pronta.", "success");
+          enableSubmit();
+          if (recordingStream) {
+            recordingStream.getTracks().forEach(track => track.stop());
+            recordingStream = null;
+          }
+        };
+
+        mediaRecorder.start();
+        recordBtn.textContent = "Ferma";
+        recordBtn.classList.add("recording");
+        setStatus("Registrazione in corso...");
+      } catch (err) {
+        setStatus("Errore microfono: " + (err.message || err), "error");
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files?.[0] || null;
+      selectedFile = file;
+      recordedBlob = null;
+
+      if (!file) {
+        enableSubmit();
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      audioPlayer.src = url;
+      audioPlayer.style.display = "block";
+      setStatus("File audio pronto.", "success");
+      enableSubmit();
+    });
+
+    sendBtn.addEventListener("click", async () => {
+      const date = dateInput.value;
+      const audio = recordedBlob || selectedFile;
+
+      if (!date) {
+        setStatus("Seleziona una data.", "error");
+        return;
+      }
+
+      if (!audio) {
+        setStatus("Registra o carica un file.", "error");
+        return;
+      }
+
+      if (!ADMIN_MODE && date === ADMIN_DATE) {
+        setStatus("Il 12/11/2026 è riservato all’amministrazione.", "error");
+        return;
+      }
+
+      const form = new FormData();
+      form.append("audio", audio, audio.name || "audio.mp3");
+      form.append("date", date);
+      form.append("admin", ADMIN_MODE ? "1" : "0");
+      form.append("reader_name", localStorage.getItem("reader_name") || "");
+
+      try {
+        sendBtn.disabled = true;
+        setStatus("Invio in corso...");
+        const res = await fetch(`${APP_URL}/upload-audio`, {
+          method: "POST",
+          body: form
+        });
+
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || "Invio non riuscito.");
+
+        setStatus("Audio inviato correttamente.", "success");
+      } catch (err) {
+        setStatus(err.message || "Invio non riuscito.", "error");
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    prevMonthBtn.addEventListener("click", async () => {
+      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+      await loadCalendarFromSupabase();
+      renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener("click", async () => {
+      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
+      await loadCalendarFromSupabase();
+      renderCalendar();
+    });
+
+    (async function init() {
+      await loadCalendarFromSupabase();
+      if (ADMIN_MODE) {
+        dateInput.value = ADMIN_DATE;
+        selectedDate = ADMIN_DATE;
+      } else {
+        dateInput.value = MIN_COLLAB_DATE;
+        selectedDate = MIN_COLLAB_DATE;
+      }
+      renderCalendar();
+      enableSubmit();
+    })();
+  </script>
+</body>
+</html>
