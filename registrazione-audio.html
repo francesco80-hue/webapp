@@ -297,64 +297,65 @@
     function headers(extra = {}) {
       return {
         apikey: CONFIG.anonKey,
-            function microphoneConstraints(deviceId = "") {
-              return {
-                audio: {
-                  ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-                  channelCount: { ideal: 1 },
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true
-                }
-              };
-            }
-
-            async function prepareMicrophoneSelection() {
-              let permissionStream;
-              try {
-                permissionStream = await navigator.mediaDevices.getUserMedia(
-                  microphoneConstraints().audio
-                );
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const microphones = devices.filter(
-                  (device) => device.kind === "audioinput" && device.deviceId
-                );
-
-                if (microphones.length <= 1) {
-                  selectedMicrophoneId = microphones[0]?.deviceId || "";
-                  if (selectedMicrophoneId) {
-                    localStorage.setItem(microphoneStorageKey, selectedMicrophoneId);
-                  }
-                  return true;
-                }
-
-                microphoneSelect.replaceChildren();
-                const placeholder = document.createElement("option");
-                placeholder.value = "";
-                placeholder.textContent = "Seleziona un microfono";
-                microphoneSelect.appendChild(placeholder);
-
-                microphones.forEach((device, index) => {
-                  const option = document.createElement("option");
-                  option.value = device.deviceId;
-                  option.textContent = device.label || `Microfono ${index + 1}`;
-                  microphoneSelect.appendChild(option);
-                });
-
-                microphoneSelect.disabled = false;
-                microphoneSelectLabel.classList.remove("hidden");
-                microphoneSelect.classList.remove("hidden");
-                microphoneHint.classList.remove("hidden");
-                microphoneSelect.focus();
-                setStatus("Scegli il microfono per questo dispositivo, poi premi Registra.");
-                return false;
-              } finally {
-                permissionStream?.getTracks().forEach((track) => track.stop());
-              }
-            }
         Authorization: `Bearer ${CONFIG.anonKey}`,
         ...extra
       };
+    }
+
+    function microphoneConstraints(deviceId = "") {
+      return {
+        audio: {
+          ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+          channelCount: { ideal: 1 },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      };
+    }
+
+    async function prepareMicrophoneSelection() {
+      let permissionStream;
+      try {
+        permissionStream = await navigator.mediaDevices.getUserMedia(
+          microphoneConstraints().audio
+        );
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const microphones = devices.filter(
+          (device) => device.kind === "audioinput" && device.deviceId
+        );
+
+        if (microphones.length <= 1) {
+          selectedMicrophoneId = microphones[0]?.deviceId || "";
+          if (selectedMicrophoneId) {
+            localStorage.setItem(microphoneStorageKey, selectedMicrophoneId);
+          }
+          return true;
+        }
+
+        microphoneSelect.replaceChildren();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Seleziona un microfono";
+        microphoneSelect.appendChild(placeholder);
+
+        microphones.forEach((device, index) => {
+          const option = document.createElement("option");
+          option.value = device.deviceId;
+          option.textContent = device.label || `Microfono ${index + 1}`;
+          microphoneSelect.appendChild(option);
+        });
+
+        microphoneSelect.disabled = false;
+        microphoneSelectLabel.classList.remove("hidden");
+        microphoneSelect.classList.remove("hidden");
+        microphoneHint.classList.remove("hidden");
+        microphoneSelect.focus();
+        setStatus("Scegli il microfono per questo dispositivo, poi premi Registra.");
+        return false;
+      } finally {
+        permissionStream?.getTracks().forEach((track) => track.stop());
+      }
     }
 
     function setStatus(message, kind = "") {
