@@ -140,6 +140,7 @@
           <ol>
             <li>Seleziona una data verde. Quando diventa arancione, hai fino a 10 minuti per completare l’invio.</li>
             <li>Scegli un luogo tranquillo e prepara il testo. Non leggere le parole tra parentesi.</li>
+             <li>Al primo utilizzo, consenti al browser di accedere al microfono. Se il telefono mostra più microfoni, scegli quello integrato; la pagina ricorderà la scelta su questo dispositivo.</li>
             <li>Inizia dicendo: “Buongiorno! Questa è la Scrittura del giorno di [data]”.</li>
             <li>Leggi la Scrittura. Poi introduci il commento con: “Il commento dice…” e leggilo.</li>
             <li>Concludi con: “Fine del commento, buona giornata”.</li>
@@ -189,6 +190,11 @@
       </div>
       <label for="fileInput">Oppure scegli un file audio</label>
       <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr" disabled>
+       <label id="microphoneSelectLabel" class="hidden" for="microphoneSelect">Scegli il microfono</label>
+       <select id="microphoneSelect" class="field hidden" disabled>
+         <option value="">Seleziona un microfono</option>
+       </select>
+       <p id="microphoneHint" class="small hidden">La scelta viene ricordata su questo dispositivo.</p>
       <audio id="audioPlayer" controls playsinline></audio>
     </section>
 
@@ -243,6 +249,9 @@
     const recordHint = $("#recordHint");
     const fileInput = $("#fileInput");
     const audioPlayer = $("#audioPlayer");
+    const microphoneSelect = $("#microphoneSelect");
+    const microphoneSelectLabel = $("#microphoneSelectLabel");
+    const microphoneHint = $("#microphoneHint");
     const statusEl = $("#status");
     const reservationActions = $("#reservationActions");
     const reservationInfo = $("#reservationInfo");
@@ -270,6 +279,8 @@
     let selectedFile = null;
     let previewUrl = "";
     let adminCode = "";
+    const microphoneStorageKey = "web_audio_microphone_device_id";
+    let selectedMicrophoneId = localStorage.getItem(microphoneStorageKey) || "";
     let adminItems = new Map();
     let busy = false;
 
@@ -286,6 +297,61 @@
     function headers(extra = {}) {
       return {
         apikey: CONFIG.anonKey,
+            function microphoneConstraints(deviceId = "") {
+              return {
+                audio: {
+                  ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+                  channelCount: { ideal: 1 },
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true
+                }
+              };
+            }
+
+            async function prepareMicrophoneSelection() {
+              let permissionStream;
+              try {
+                permissionStream = await navigator.mediaDevices.getUserMedia(
+                  microphoneConstraints().audio
+                );
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const microphones = devices.filter(
+                  (device) => device.kind === "audioinput" && device.deviceId
+                );
+
+                if (microphones.length <= 1) {
+                  selectedMicrophoneId = microphones[0]?.deviceId || "";
+                  if (selectedMicrophoneId) {
+                    localStorage.setItem(microphoneStorageKey, selectedMicrophoneId);
+                  }
+                  return true;
+                }
+
+                microphoneSelect.replaceChildren();
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "Seleziona un microfono";
+                microphoneSelect.appendChild(placeholder);
+
+                microphones.forEach((device, index) => {
+                  const option = document.createElement("option");
+                  option.value = device.deviceId;
+                  option.textContent = device.label || `Microfono ${index + 1}`;
+                  microphoneSelect.appendChild(option);
+                });
+
+                microphoneSelect.disabled = false;
+                microphoneSelectLabel.classList.remove("hidden");
+                microphoneSelect.classList.remove("hidden");
+                microphoneHint.classList.remove("hidden");
+                microphoneSelect.focus();
+                setStatus("Scegli il microfono per questo dispositivo, poi premi Registra.");
+                return false;
+              } finally {
+                permissionStream?.getTracks().forEach((track) => track.stop());
+              }
+            }
         Authorization: `Bearer ${CONFIG.anonKey}`,
         ...extra
       };
@@ -527,6 +593,16 @@
       recordBtn.textContent = "Registra";
     }
 
+    microphoneSelect.addEventListener("change", () => {
+      selectedMicrophoneId = microphoneSelect.value;
+      if (!selectedMicrophoneId) return;
+
+      localStorage.setItem(microphoneStorageKey, selectedMicrophoneId);
+      const selectedLabel = microphoneSelect.selectedOptions[0]?.textContent || "microfono scelto";
+      microphoneHint.textContent = `${selectedLabel}. La scelta è salvata su questo dispositivo.`;
+      setStatus("Microfono scelto. Premi Registra per iniziare.", "success");
+    });
+
     recordBtn.addEventListener("click", async () => {
       if (!reservation || busy || adminCode) return;
       if (mediaRecorder?.state === "recording") {
@@ -540,14 +616,30 @@
         if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
           throw new Error("Questo browser non supporta la registrazione audio.");
         }
-        recordingStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            channelCount: { ideal: 1 },
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
+        if (!selectedMicrophoneId) {
+          const selectionReady = await prepareMicrophoneSelection();
+          if (!selectionReady) return;
+        }
+
+        try {
+          recordingStream = await navigator.mediaDevices.getUserMedia(
+            microphoneConstraints(selectedMicrophoneId).audio
+          );
+        } catch (error) {
+          if (!selectedMicrophoneId || !["NotFoundError", "OverconstrainedError"].includes(error.name)) {
+            throw error;
           }
-        });
+
+          localStorage.removeItem(microphoneStorageKey);
+          selectedMicrophoneId = "";
+          microphoneSelect.value = "";
+          const selectionReady = await prepareMicrophoneSelection();
+          if (selectionReady) {
+            setStatus("Il microfono salvato non è più disponibile. Premi Registra per riprovare.", "error");
+          }
+          return;
+        }
+
         const supported = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
         const mimeType = supported.find((type) => MediaRecorder.isTypeSupported(type)) || "";
         const recorderOptions = {
