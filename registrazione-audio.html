@@ -219,6 +219,7 @@
         </div>
         <label id="replaceLabel" class="hidden" for="replaceInput">Sostituisci con un file audio</label>
         <input id="replaceInput" class="hidden" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr">
+        <button id="adminReplaceBtn" class="button primary hidden" type="button" disabled>Sostituisci audio</button>
         <button id="logoutBtn" class="button" type="button">Esci dall’area amministratore</button>
       </div>
     </section>
@@ -253,6 +254,7 @@
     const adminItemInfo = $("#adminItemInfo");
     const adminActions = $("#adminActions");
     const replaceInput = $("#replaceInput");
+    const adminReplaceBtn = $("#adminReplaceBtn");
 
     let viewMonth = new Date(2026, 10, 1);
     let calendarData = {};
@@ -491,6 +493,7 @@
       recordedBlob = null;
       selectedFile = null;
       fileInput.value = "";
+      replaceInput.value = "";
       updateSubmit();
     }
 
@@ -505,9 +508,10 @@
     function updateSubmit() {
       if (adminCode) {
         const item = adminItems.get(selectedDate);
-        sendBtn.textContent = "Sostituisci audio";
-        sendBtn.disabled = busy || !item || item.status !== "ready" || !(recordedBlob || selectedFile);
+        sendBtn.disabled = true;
+        adminReplaceBtn.disabled = busy || !item || item.status !== "ready" || !(recordedBlob || selectedFile);
       } else {
+        adminReplaceBtn.disabled = true;
         sendBtn.textContent = "Conferma e invia";
         const isReserved = reservation && new Date(reservation.expiresAt).getTime() > Date.now();
         sendBtn.disabled = busy || !isReserved || !(recordedBlob || selectedFile);
@@ -621,6 +625,8 @@
       await sendCollaboratorAudio();
     });
 
+    adminReplaceBtn.addEventListener("click", replaceAdminAudio);
+
     async function sendCollaboratorAudio() {
       const audio = recordedBlob || selectedFile;
       if (!reservation || !selectedDate || !audio) return;
@@ -709,6 +715,7 @@
       $("#deleteBtn").disabled = busy || !item || item.status !== "ready";
       $("#replaceLabel").classList.toggle("hidden", !item || item.status !== "ready");
       replaceInput.classList.toggle("hidden", !item || item.status !== "ready");
+      adminReplaceBtn.classList.toggle("hidden", !item || item.status !== "ready");
       updateSubmit();
     }
 
