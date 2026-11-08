@@ -712,6 +712,28 @@
     });
 
     $("#cancelBtn").addEventListener("click", async () => {
+      const activeReservation = reservation;
+      let releaseError = null;
+      busy = true;
+      setStatus("Annullamento della prenotazione...");
+
+      if (activeReservation) {
+        try {
+          const response = await fetch(`${CONFIG.functionsUrl}/reserve-audio`, {
+            method: "POST",
+            headers: headers({ "Content-Type": "application/json" }),
+            body: JSON.stringify({
+              action: "cancel",
+              session_id: sessionId,
+              reservation_id: activeReservation.id
+            })
+          });
+          await readJson(response);
+        } catch (error) {
+          releaseError = error;
+        }
+      }
+
       resetRecording();
       clearAudioPreview();
       selectedDate = "";
@@ -722,7 +744,10 @@
       recordBtn.disabled = true;
       fileInput.disabled = true;
       recordHint.textContent = "Seleziona prima una data libera.";
-      setStatus("Registrazione annullata. La data tornerà disponibile entro 10 minuti.");
+      busy = false;
+      setStatus(releaseError
+        ? "Registrazione annullata. La prenotazione scadrà entro 10 minuti."
+        : "Registrazione annullata. La data è stata liberata.", releaseError ? "error" : "success");
       await loadCalendar();
     });
 
