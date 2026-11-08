@@ -540,10 +540,27 @@
         if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
           throw new Error("Questo browser non supporta la registrazione audio.");
         }
-        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: { ideal: 1 },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
         const supported = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
         const mimeType = supported.find((type) => MediaRecorder.isTypeSupported(type)) || "";
-        mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
+        const recorderOptions = {
+          ...(mimeType ? { mimeType } : {}),
+          audioBitsPerSecond: 128000
+        };
+        try {
+          mediaRecorder = new MediaRecorder(recordingStream, recorderOptions);
+        } catch {
+          mediaRecorder = mimeType
+            ? new MediaRecorder(recordingStream, { mimeType })
+            : new MediaRecorder(recordingStream);
+        }
         audioChunks = [];
         recordedBlob = null;
         selectedFile = null;
