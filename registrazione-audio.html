@@ -318,7 +318,7 @@
       let permissionStream;
       try {
         permissionStream = await navigator.mediaDevices.getUserMedia(
-          microphoneConstraints().audio
+          microphoneConstraints()
         );
         const devices = await navigator.mediaDevices.enumerateDevices();
         const microphones = devices.filter(
@@ -624,7 +624,7 @@
 
         try {
           recordingStream = await navigator.mediaDevices.getUserMedia(
-            microphoneConstraints(selectedMicrophoneId).audio
+            microphoneConstraints(selectedMicrophoneId)
           );
         } catch (error) {
           if (!selectedMicrophoneId || !["NotFoundError", "OverconstrainedError"].includes(error.name)) {
