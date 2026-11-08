@@ -1,598 +1,867 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
   <title>Archivio audio</title>
   <style>
     :root {
-      --bg: #f5f7f3;
-      --panel: #ffffff;
-      --panel-alt: #eef5ef;
-      --line: #dfe9e1;
-      --text: #1a261f;
-      --muted: #5d6a63;
-      --green: #69d38a;
-      --green-soft: #eafaf0;
-      --orange: #f5b35d;
-      --orange-soft: #fff4e3;
-      --red: #ef6b5d;
-      --red-soft: #ffe8e4;
-      --blue: #81b7ff;
-      --shadow: rgba(18, 28, 21, 0.08);
+      color-scheme: light;
+      --bg: #edf3ee;
+      --panel: #fff;
+      --panel-alt: #e6f0e8;
+      --line: #c4d3c7;
+      --text: #17241c;
+      --muted: #5c6a61;
+      --green: #126b35;
+      --green-soft: #82e79a;
+      --orange: #915000;
+      --orange-soft: #ffc65c;
+      --red: #a52e26;
+      --red-soft: #ff9186;
+      --blue: #205e94;
+      --shadow: rgba(18, 30, 21, .08);
     }
 
     * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
     body {
       display: flex;
       justify-content: center;
-      padding: max(20px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom));
+      padding: max(18px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
     }
-
-    main {
-      width: min(100%, 560px);
-      display: grid;
-      gap: 18px;
-    }
-
+    button, input { font: inherit; }
+    main { width: min(100%, 620px); display: grid; gap: 14px; }
+    .masthead { padding: 8px 2px 2px; }
+    h1 { margin: 0 0 6px; font-size: 1.8rem; line-height: 1.1; }
+    h2 { margin: 0; font-size: 1.04rem; }
+    p { margin: 0; color: var(--muted); line-height: 1.45; }
     .panel {
+      padding: 16px;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: 0 6px 18px var(--shadow);
-      padding: 16px;
-    }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: clamp(1.7rem, 5vw, 2.3rem);
-      line-height: 1.1;
-    }
-
-    h2 {
-      margin: 0 0 12px;
-      font-size: 1.05rem;
-    }
-
-    p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .legend {
-      list-style: none;
-      margin: 0 0 12px;
-      padding: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 14px;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .legend li {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .dot.green { background: var(--green); }
-    .dot.orange { background: var(--orange); }
-    .dot.red { background: var(--red); }
-
-    .calendar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      gap: 12px;
-    }
-
-    .mini-btn {
-      width: 40px;
-      height: 40px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: white;
-      color: var(--text);
-      font-size: 1.3rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .wd {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      padding-bottom: 4px;
-    }
-
-    .day {
-      min-height: 52px;
-      border: 1px solid var(--line);
       border-radius: 12px;
-      background: white;
-      color: var(--text);
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.12s ease;
+      box-shadow: 0 8px 22px rgba(18, 30, 21, .12);
     }
-
-    .day:active { transform: scale(0.98); }
-    .day:disabled {
-      opacity: 0.52;
-      cursor: not-allowed;
+    #instructionsSection { border-left: 5px solid var(--blue); background: #fbfdfb; }
+    #calendarSection { border-left: 5px solid var(--green); }
+    #audioPanel { border-left: 5px solid var(--orange); }
+    #reservationActions { border-left: 5px solid var(--blue); }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; padding: 0; list-style: none; color: var(--muted); font-size: .86rem; }
+    .legend li { display: inline-flex; align-items: center; gap: 7px; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot.green { background: var(--green-soft); border: 1px solid var(--green); }
+    .dot.orange { background: var(--orange-soft); border: 1px solid var(--orange); }
+    .dot.red { background: var(--red-soft); border: 1px solid var(--red); }
+    .month-controls { display: flex; gap: 7px; }
+    .icon-button {
+      width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px;
+      background: var(--panel); color: var(--text); font-size: 1.25rem; cursor: pointer;
     }
-
-    .day.green {
-      background: var(--green-soft);
-      border-color: #b7e8c4;
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .weekday { padding: 3px 0; color: var(--muted); text-align: center; font-size: .7rem; text-transform: uppercase; }
+    .day, .calendar-spacer { min-width: 0; min-height: 48px; border-radius: 8px; }
+    .calendar-spacer { border: 1px solid transparent; }
+    .day { border: 1px solid var(--line); background: #fff; color: var(--text); font-weight: 700; cursor: pointer; }
+    .day.green { background: var(--green-soft); border-color: #18813c; }
+    .day.orange { background: var(--orange-soft); border-color: #b66a00; }
+    .day.red { background: var(--red-soft); border-color: #b9372e; }
+    .day.muted { background: #f1f3f1; color: #839087; }
+    .day.today { box-shadow: inset 0 0 0 2px #77a6d0; }
+    .day.selected { outline: 2px solid var(--blue); outline-offset: 1px; }
+    .day:disabled { opacity: .86; cursor: not-allowed; }
+    label { display: block; margin-bottom: 7px; font-weight: 700; }
+    .field, input[type="file"] {
+      width: 100%; min-height: 48px; padding: 11px 12px; border: 1px solid var(--line);
+      border-radius: 8px; background: #fbfcfb; color: var(--text);
     }
-    .day.orange {
-      background: var(--orange-soft);
-      border-color: #f0d292;
+    .field[readonly] { color: var(--muted); }
+    .small { margin-top: 8px; font-size: .83rem; }
+    .record-wrap { display: grid; justify-items: center; gap: 10px; padding: 10px 0; }
+    .record-button {
+      width: 132px; height: 132px; border: 7px solid #62bd78; border-radius: 50%;
+      background: #82e79a; color: #12351e; font-weight: 800; cursor: pointer;
     }
-    .day.red {
-      background: var(--red-soft);
-      border-color: #f2b3ab;
+    .record-button.recording { background: #ff9186; border-color: #d84b40; color: #4b1f1b; }
+    .record-button:disabled { opacity: .5; cursor: not-allowed; }
+    audio { display: none; width: 100%; margin-top: 12px; }
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .button {
+      min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+      background: #fff; color: var(--text); font-weight: 700; cursor: pointer;
     }
-    .day.muted {
-      background: #f4f7f5;
-      color: #b4bcb7;
-    }
-    .day.selected {
-      outline: 2px solid var(--blue);
-      outline-offset: 1px;
-    }
-    .day.today {
-      box-shadow: inset 0 0 0 1px rgba(129, 183, 255, 0.75);
-    }
-
-    label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    input[type="date"] {
-      width: 100%;
-      min-height: 52px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      padding: 12px 14px;
-      font: inherit;
-      background: #f9fbf9;
-      color: var(--text);
-    }
-
-    .record-wrap {
-      display: grid;
-      justify-items: center;
-      gap: 12px;
-      margin-top: 6px;
-    }
-
-    .record-btn {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      border: 8px solid rgba(67, 95, 76, 0.12);
-      background: var(--green);
-      color: #163426;
-      font-size: 1.05rem;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .record-btn.recording {
-      background: var(--red);
-      color: #2a120f;
-    }
-
-    input[type="file"] {
-      width: 100%;
-      min-height: 52px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      padding: 10px 12px;
-      background: #f9fbf9;
-      color: var(--text);
-    }
-
-    audio {
-      width: 100%;
-      display: none;
-      margin-top: 12px;
-    }
-
-    .btn {
-      width: 100%;
-      min-height: 54px;
-      border: none;
-      border-radius: 12px;
-      background: var(--green);
-      color: #163426;
-      font: inherit;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .status {
-      min-height: 26px;
-      text-align: center;
-      margin: 0;
-      color: var(--muted);
-      overflow-wrap: anywhere;
-    }
-
-    .status.error { color: #c94c43; }
-    .status.success { color: #2f8f5d; }
-
-    .tiny {
-      font-size: 0.8rem;
-      color: var(--muted);
+    .button.primary { border-color: #12552e; background: #176b3a; color: #fff; }
+    .button.danger { border-color: #d6aaa5; color: #902f28; }
+    .button:disabled { opacity: .5; cursor: not-allowed; }
+    .text-button { padding: 4px 0; border: 0; background: transparent; color: var(--blue); text-decoration: underline; cursor: pointer; }
+    .status { min-height: 1.5em; text-align: center; overflow-wrap: anywhere; }
+    .status.error { color: #a52e26; }
+    .status.success { color: #236a3d; }
+    .admin-panel { display: grid; gap: 12px; }
+    .admin-meta { padding: 10px; border-radius: 8px; background: var(--panel-alt); font-size: .9rem; }
+    details.panel > summary { cursor: pointer; font-weight: 700; }
+    details.panel[open] > summary { margin-bottom: 14px; }
+    .instructions-content { display: grid; gap: 14px; }
+    .instructions-content h3 { margin: 0 0 6px; font-size: .95rem; }
+    .instructions-content ul, .instructions-content ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.5; }
+    .instructions-content a { color: var(--blue); }
+    .hidden { display: none !important; }
+    @media (max-width: 380px) {
+      .panel { padding: 13px; }
+      .calendar-grid { gap: 5px; }
+      .day, .calendar-spacer { min-height: 43px; }
+      .record-button { width: 120px; height: 120px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <section class="panel">
+    <header class="masthead">
       <h1>Archivio audio</h1>
-      <p>Seleziona una data libera, registra dal microfono o carica un file audio.</p>
-    </section>
+      <p>Seleziona una data libera, registra dal microfono o scegli un file audio.</p>
+    </header>
 
-    <section class="panel">
-      <h2>Calendario</h2>
-      <ul class="legend">
-        <li><span class="dot green"></span> Libera</li>
-        <li><span class="dot orange"></span> Riservata</li>
-        <li><span class="dot red"></span> Conclusa</li>
-      </ul>
+    <details id="instructionsSection" class="panel">
+      <summary>Istruzioni per la registrazione</summary>
+      <div class="instructions-content">
+        <section>
+          <h3>Come usare il calendario</h3>
+          <ul>
+            <li><strong>Verde:</strong> data libera, puoi selezionarla.</li>
+            <li><strong>Arancione:</strong> data prenotata mentre è in corso una registrazione; non è selezionabile da altri. La prenotazione scade dopo 10 minuti.</li>
+            <li><strong>Rosso:</strong> data già registrata; non è selezionabile dai collaboratori.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Registra dal microfono</h3>
+          <ol>
+            <li>Seleziona una data verde. Quando diventa arancione, hai fino a 10 minuti per completare l’invio.</li>
+            <li>Scegli un luogo tranquillo e prepara il testo. Non leggere le parole tra parentesi.</li>
+            <li>Inizia dicendo: “Buongiorno! Questa è la Scrittura del giorno di [data]”.</li>
+            <li>Leggi la Scrittura. Poi introduci il commento con: “Il commento dice…” e leggilo.</li>
+            <li>Concludi con: “Fine del commento, buona giornata”.</li>
+            <li>Riascolta la registrazione. Se vuoi correggerla, registrala di nuovo. Quando sei soddisfatto, conferma l’invio.</li>
+          </ol>
+          <p class="small">(<a href="https://wol.jw.org/it/wol/d/r6/lp-i/1102018445#h=1:0-10:57" target="_blank" rel="noopener noreferrer">come fare una buona lettura</a>)</p>
+        </section>
+        <section>
+          <h3>Carica un file audio</h3>
+          <ol>
+            <li>Seleziona una data verde.</li>
+            <li>Scegli un file audio dal dispositivo, fino a 5 MB.</li>
+            <li>Ascolta l’anteprima e conferma l’invio. Se non va bene, scegli un altro file oppure annulla.</li>
+          </ol>
+          <p class="small">Se annulli, la data può restare arancione fino alla scadenza della prenotazione, per un massimo di 10 minuti.</p>
+        </section>
+      </div>
+    </details>
 
-      <div class="calendar-header">
-        <h2 id="monthLabel">Mese</h2>
-        <div>
-          <button id="prevMonth" class="mini-btn" type="button" aria-label="Mese precedente">‹</button>
-          <button id="nextMonth" class="mini-btn" type="button" aria-label="Mese successivo">›</button>
+    <section id="calendarSection" class="panel" aria-labelledby="calendarTitle">
+      <div class="panel-heading">
+        <h2 id="calendarTitle">Calendario</h2>
+        <div class="month-controls">
+          <button id="prevMonth" class="icon-button" type="button" aria-label="Mese precedente">‹</button>
+          <button id="nextMonth" class="icon-button" type="button" aria-label="Mese successivo">›</button>
         </div>
       </div>
-
+      <ul class="legend" aria-label="Legenda calendario">
+        <li><span class="dot green"></span>Libera</li>
+        <li><span class="dot orange"></span>Riservata</li>
+        <li><span class="dot red"></span>Registrata</li>
+      </ul>
+      <p id="monthLabel" class="small"></p>
       <div id="calendar" class="calendar-grid" aria-live="polite"></div>
     </section>
 
     <section class="panel">
-      <label for="dateInput">Data scelta</label>
-      <input id="dateInput" type="date" />
-      <p class="tiny">La prima data disponibile per i collaboratori è 15/11/2026. Il 12/11/2026 è riservato all’amministrazione.</p>
+      <label for="dateInput">Data selezionata</label>
+      <input id="dateInput" class="field" type="date" readonly>
     </section>
 
-    <section class="panel">
-      <h2>Registra audio</h2>
+    <section id="audioPanel" class="panel">
+      <h2>Prepara l’audio</h2>
       <div class="record-wrap">
-        <button id="recordBtn" class="record-btn" type="button">Registra</button>
+        <button id="recordBtn" class="record-button" type="button" disabled>Registra</button>
+        <p id="recordHint" class="small">Seleziona prima una data libera.</p>
       </div>
-      <audio id="audioPlayer" controls></audio>
+      <label for="fileInput">Oppure scegli un file audio</label>
+      <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr" disabled>
+      <audio id="audioPlayer" controls playsinline></audio>
+    </section>
+
+    <section id="reservationActions" class="panel hidden">
+      <p id="reservationInfo" class="small"></p>
+      <div class="button-row">
+        <button id="cancelBtn" class="button danger" type="button">Annulla</button>
+        <button id="sendBtn" class="button primary" type="button" disabled>Conferma e invia</button>
+      </div>
     </section>
 
     <section class="panel">
-      <h2>Carica un file</h2>
-      <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.3gp,.amr" />
+      <button id="adminToggle" class="text-button" type="button">Accesso amministratore</button>
+      <div id="adminLogin" class="admin-panel hidden">
+        <label for="adminCode">Codice amministratore</label>
+        <input id="adminCode" class="field" type="password" autocomplete="current-password">
+        <div class="button-row">
+          <button id="adminLoginBtn" class="button primary" type="button">Accedi</button>
+          <button id="adminCancelBtn" class="button" type="button">Chiudi</button>
+        </div>
+      </div>
+      <div id="adminSession" class="admin-panel hidden">
+        <p class="admin-meta">Modalità amministratore. Seleziona una data rossa per ascoltare, sostituire o eliminare l’audio non pubblicato.</p>
+        <p id="adminItemInfo" class="small"></p>
+        <div id="adminActions" class="button-row hidden">
+          <button id="listenBtn" class="button" type="button">Ascolta audio</button>
+          <button id="deleteBtn" class="button danger" type="button">Elimina audio</button>
+        </div>
+        <label id="replaceLabel" class="hidden" for="replaceInput">Sostituisci con un file audio</label>
+        <input id="replaceInput" class="hidden" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr">
+        <button id="logoutBtn" class="button" type="button">Esci dall’area amministratore</button>
+      </div>
     </section>
 
-    <button id="sendBtn" class="btn" type="button" disabled>Conferma registrazione</button>
     <p id="status" class="status" role="status" aria-live="polite"></p>
   </main>
 
   <script>
-    const ADMIN_MODE = new URLSearchParams(location.search).get("admin") === "1";
-    const APP_URL = "https://TUO_DOMINIO.supabase.co/functions/v1";
-    const MIN_COLLAB_DATE = "2026-11-15";
-    const ADMIN_DATE = "2026-11-12";
+    const CONFIG = {
+      functionsUrl: "https://iujvhykqsfsnjdbozsal.supabase.co/functions/v1",
+      anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1anZoeWtxc2ZzbmpkYm96c2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDY0OTksImV4cCI6MjEwNDg4MjQ5OX0.bfY316svvm5de8C2Mz0u4jldslqQhAXWYC_f0_QgIjg",
+      minCollaboratorDate: "2026-11-15",
+      maxUploadBytes: 5 * 1024 * 1024
+    };
 
-    const monthLabel = document.getElementById("monthLabel");
-    const calendarEl = document.getElementById("calendar");
-    const dateInput = document.getElementById("dateInput");
-    const prevMonthBtn = document.getElementById("prevMonth");
-    const nextMonthBtn = document.getElementById("nextMonth");
-    const recordBtn = document.getElementById("recordBtn");
-    const fileInput = document.getElementById("fileInput");
-    const audioPlayer = document.getElementById("audioPlayer");
-    const sendBtn = document.getElementById("sendBtn");
-    const statusEl = document.getElementById("status");
+    const $ = (selector) => document.querySelector(selector);
+    const monthLabel = $("#monthLabel");
+    const calendarEl = $("#calendar");
+    const dateInput = $("#dateInput");
+    const recordBtn = $("#recordBtn");
+    const recordHint = $("#recordHint");
+    const fileInput = $("#fileInput");
+    const audioPlayer = $("#audioPlayer");
+    const statusEl = $("#status");
+    const reservationActions = $("#reservationActions");
+    const reservationInfo = $("#reservationInfo");
+    const sendBtn = $("#sendBtn");
+    const adminToggle = $("#adminToggle");
+    const adminLogin = $("#adminLogin");
+    const adminCodeInput = $("#adminCode");
+    const adminSession = $("#adminSession");
+    const adminItemInfo = $("#adminItemInfo");
+    const adminActions = $("#adminActions");
+    const replaceInput = $("#replaceInput");
 
-    let viewMonth = new Date(2026, 10, 1); // novembre 2026
-    let selectedDate = "";
+    let viewMonth = new Date(2026, 10, 1);
     let calendarData = {};
-    let mediaRecorder;
-    let audioChunks = [];
+    let calendarFailed = false;
+    let selectedDate = "";
+    let sessionId = getSessionId();
+    let reservation = null;
+    let reservationTimer = null;
+    let mediaRecorder = null;
     let recordingStream = null;
+    let audioChunks = [];
     let recordedBlob = null;
     let selectedFile = null;
+    let previewUrl = "";
+    let adminCode = "";
+    let adminItems = new Map();
+    let busy = false;
 
-    function setStatus(msg, kind = "") {
-      statusEl.textContent = msg;
-      statusEl.className = "status" + (kind ? " " + kind : "");
+    function getSessionId() {
+      const key = "web_audio_session_id";
+      let id = localStorage.getItem(key);
+      if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+        id = crypto.randomUUID();
+        localStorage.setItem(key, id);
+      }
+      return id;
     }
 
-    function iso(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const d = String(date.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
+    function headers(extra = {}) {
+      return {
+        apikey: CONFIG.anonKey,
+        Authorization: `Bearer ${CONFIG.anonKey}`,
+        ...extra
+      };
     }
 
-    function parseISO(str) {
-      if (!str) return null;
-      const [y, m, d] = str.split("-").map(Number);
-      return new Date(y, m - 1, d);
+    function setStatus(message, kind = "") {
+      statusEl.textContent = message;
+      statusEl.className = `status${kind ? ` ${kind}` : ""}`;
     }
 
-    function monthLabelText(date) {
+    function monthKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function toIso(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function parseIso(value) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+      if (!match) return null;
+      const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return toIso(date) === value ? date : null;
+    }
+
+    function monthTitle(date) {
       return new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(date);
     }
 
-    function dayState(dateStr) {
-      if (!dateStr) return "muted";
-
-      if (calendarData[dateStr]) return calendarData[dateStr];
-
-      const target = parseISO(dateStr);
-      const start = parseISO(MIN_COLLAB_DATE);
-
-      if (!target) return "muted";
-      if (dateStr === ADMIN_DATE && ADMIN_MODE) return "red";
-      if (target < start) return "red";
-      return "green";
+    async function readJson(response) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `Richiesta non riuscita (HTTP ${response.status})`);
+      return data;
     }
 
-    async function loadCalendarFromSupabase() {
+    async function loadCalendar() {
+      const query = new URLSearchParams({ month: monthKey(viewMonth) });
       try {
-        const url = `${APP_URL}/audio-calendar?month=${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, "0")}`;
-        const res = await fetch(url, { method: "GET" });
-        if (!res.ok) throw new Error("Impossibile leggere calendario");
-        const data = await res.json();
-        calendarData = data.days || {};
-      } catch (e) {
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-calendar?${query}`, {
+          method: "GET",
+          headers: headers()
+        });
+        const data = await readJson(response);
+        if (!data.days || typeof data.days !== "object") throw new Error("Risposta calendario non valida");
+        calendarData = data.days;
+        calendarFailed = false;
+      } catch (error) {
         calendarData = {};
+        calendarFailed = true;
+        setStatus(`Calendario non disponibile: ${error.message}`, "error");
       }
+
+      if (adminCode) await loadAdminItems();
+      renderCalendar();
+    }
+
+    async function loadAdminItems() {
+      const query = new URLSearchParams({ action: "list", month: monthKey(viewMonth) });
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
+          method: "GET",
+          headers: headers({ "x-admin-code": adminCode })
+        });
+        const data = await readJson(response);
+        adminItems = new Map((data.items || []).map((item) => [item.audio_date, item]));
+      } catch (error) {
+        adminItems.clear();
+        setStatus(`Elenco amministrativo non disponibile: ${error.message}`, "error");
+      }
+      renderAdminSelection();
+    }
+
+    function dayState(date) {
+      if (calendarFailed) return "muted";
+      return calendarData[date] || "muted";
     }
 
     function renderCalendar() {
-      monthLabel.textContent = monthLabelText(viewMonth);
-      calendarEl.innerHTML = "";
+      monthLabel.textContent = monthTitle(viewMonth);
+      calendarEl.replaceChildren();
 
-      const weekdays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-      weekdays.forEach(day => {
-        const el = document.createElement("div");
-        el.className = "wd";
-        el.textContent = day;
-        calendarEl.appendChild(el);
-      });
+      for (const label of ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]) {
+        const weekday = document.createElement("div");
+        weekday.className = "weekday";
+        weekday.textContent = label;
+        calendarEl.appendChild(weekday);
+      }
 
       const first = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
       const offset = (first.getDay() + 6) % 7;
       const lastDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
 
       for (let i = 0; i < offset; i++) {
-        const filler = document.createElement("div");
-        filler.className = "day muted";
-        filler.disabled = true;
-        filler.setAttribute("aria-hidden", "true");
-        calendarEl.appendChild(filler);
+        const spacer = document.createElement("div");
+        spacer.className = "calendar-spacer";
+        spacer.setAttribute("aria-hidden", "true");
+        calendarEl.appendChild(spacer);
       }
 
       for (let day = 1; day <= lastDay; day++) {
-        const d = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-        const str = iso(d);
-        const state = dayState(str);
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = `day ${state}`;
-        btn.textContent = String(day);
-
-        if (selectedDate === str) btn.classList.add("selected");
-        if (iso(new Date()) === str) btn.classList.add("today");
-
-        const isSelectableByUser = !ADMIN_MODE && state === "green" && str >= MIN_COLLAB_DATE && str !== ADMIN_DATE;
-        const isSelectableByAdmin = ADMIN_MODE && (state === "green" || state === "red" || state === "orange");
-
-        if ((!ADMIN_MODE && !isSelectableByUser) || (ADMIN_MODE && !isSelectableByAdmin)) {
-          btn.disabled = true;
-        }
-
-        btn.addEventListener("click", () => {
-          if (!ADMIN_MODE && str !== ADMIN_DATE && state !== "green") {
-            setStatus("Questa data non è disponibile.", "error");
-            return;
-          }
-
-          if (!ADMIN_MODE && str === ADMIN_DATE) {
-            setStatus("Il 12/11/2026 è riservato all’amministrazione.", "error");
-            return;
-          }
-
-          selectedDate = str;
-          dateInput.value = str;
-          setStatus("Data selezionata.", "success");
-          renderCalendar();
-          enableSubmit();
-        });
-
-        calendarEl.appendChild(btn);
+        const date = toIso(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day));
+        const state = dayState(date);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `day ${state}${date === selectedDate ? " selected" : ""}${date === toIso(new Date()) ? " today" : ""}`;
+        button.textContent = String(day);
+        button.setAttribute("aria-label", `${date}, ${state}`);
+        button.disabled = calendarFailed || (adminCode ? state === "muted" : state !== "green");
+        button.addEventListener("click", () => chooseDate(date, state));
+        calendarEl.appendChild(button);
       }
     }
 
-    function enableSubmit() {
-      const ok = !!selectedDate && !!(recordedBlob || selectedFile) && !!dateInput.value;
-      sendBtn.disabled = !ok;
+    async function chooseDate(date, state) {
+      if (busy) return;
+      if (adminCode) {
+        selectedDate = date;
+        dateInput.value = date;
+        clearAudioPreview();
+        renderCalendar();
+        renderAdminSelection();
+        setStatus(`Data selezionata: ${date}`);
+        return;
+      }
+
+      if (state !== "green" || date < CONFIG.minCollaboratorDate) {
+        setStatus("Questa data non è disponibile per i collaboratori.", "error");
+        return;
+      }
+
+      selectedDate = date;
+      dateInput.value = date;
+      clearAudioPreview();
+      reservation = null;
+      updateSubmit();
+      setStatus("Prenotazione della data in corso...");
+      busy = true;
+      renderCalendar();
+
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/reserve-audio`, {
+          method: "POST",
+          headers: headers({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ date, session_id: sessionId, reader_name: "" })
+        });
+        const result = await readJson(response);
+        reservation = {
+          id: result.reservation_id,
+          expiresAt: result.expires_at
+        };
+        if (!reservation.id || !reservation.expiresAt) throw new Error("Risposta prenotazione incompleta");
+        startReservationTimer();
+        reservationActions.classList.remove("hidden");
+        recordBtn.disabled = false;
+        fileInput.disabled = false;
+        recordHint.textContent = "Registra e ascolta l’audio, oppure scegli un file.";
+        setStatus("Data riservata. La prenotazione scade tra 10 minuti.", "success");
+        await loadCalendar();
+      } catch (error) {
+        reservation = null;
+        selectedDate = "";
+        dateInput.value = "";
+        reservationActions.classList.add("hidden");
+        recordBtn.disabled = true;
+        fileInput.disabled = true;
+        setStatus(error.message, "error");
+        await loadCalendar();
+      } finally {
+        busy = false;
+        renderCalendar();
+        updateSubmit();
+      }
+    }
+
+    function startReservationTimer() {
+      clearInterval(reservationTimer);
+      reservationTimer = setInterval(() => {
+        if (!reservation) return;
+        const remaining = new Date(reservation.expiresAt).getTime() - Date.now();
+        if (remaining <= 0) {
+          clearInterval(reservationTimer);
+          reservation = null;
+          selectedDate = "";
+          dateInput.value = "";
+          clearAudioPreview();
+          reservationActions.classList.add("hidden");
+          recordBtn.disabled = true;
+          fileInput.disabled = true;
+          setStatus("Prenotazione scaduta. Scegli di nuovo una data libera.", "error");
+          loadCalendar();
+          return;
+        }
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        reservationInfo.textContent = `Prenotazione valida ancora ${minutes}:${String(seconds).padStart(2, "0")}.`;
+      }, 1000);
+    }
+
+    function clearAudioPreview() {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = "";
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      audioPlayer.style.display = "none";
+      recordedBlob = null;
+      selectedFile = null;
+      fileInput.value = "";
+      updateSubmit();
+    }
+
+    function showPreview(blob) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(blob);
+      audioPlayer.src = previewUrl;
+      audioPlayer.style.display = "block";
+      updateSubmit();
+    }
+
+    function updateSubmit() {
+      if (adminCode) {
+        const item = adminItems.get(selectedDate);
+        sendBtn.textContent = "Sostituisci audio";
+        sendBtn.disabled = busy || !item || item.status !== "ready" || !(recordedBlob || selectedFile);
+      } else {
+        sendBtn.textContent = "Conferma e invia";
+        const isReserved = reservation && new Date(reservation.expiresAt).getTime() > Date.now();
+        sendBtn.disabled = busy || !isReserved || !(recordedBlob || selectedFile);
+      }
+    }
+
+    function resetRecording() {
+      if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+      if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+      recordingStream = null;
+      mediaRecorder = null;
+      recordBtn.classList.remove("recording");
+      recordBtn.textContent = "Registra";
     }
 
     recordBtn.addEventListener("click", async () => {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
+      if (!reservation || busy || adminCode) return;
+      if (mediaRecorder?.state === "recording") {
         mediaRecorder.stop();
-        recordBtn.textContent = "Registra";
-        recordBtn.classList.remove("recording");
+        recordBtn.disabled = true;
+        recordHint.textContent = "Preparazione dell’audio...";
         return;
       }
 
       try {
-        if (!navigator.mediaDevices || !window.MediaRecorder) {
-          throw new Error("Questo browser non supporta la registrazione.");
+        if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+          throw new Error("Questo browser non supporta la registrazione audio.");
         }
-
         recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm";
-
-        mediaRecorder = new MediaRecorder(recordingStream, { mimeType });
+        const supported = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
+        const mimeType = supported.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+        mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
         audioChunks = [];
+        recordedBlob = null;
+        selectedFile = null;
+        fileInput.value = "";
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = () => {
-          recordedBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
-          const url = URL.createObjectURL(recordedBlob);
-          audioPlayer.src = url;
-          audioPlayer.style.display = "block";
+        mediaRecorder.addEventListener("dataavailable", (event) => {
+          if (event.data.size) audioChunks.push(event.data);
+        });
+        mediaRecorder.addEventListener("stop", () => {
+          const type = mediaRecorder?.mimeType || "audio/webm";
+          recordedBlob = new Blob(audioChunks, { type });
           selectedFile = null;
-          fileInput.value = "";
-          setStatus("Registrazione pronta.", "success");
-          enableSubmit();
-          if (recordingStream) {
-            recordingStream.getTracks().forEach(track => track.stop());
-            recordingStream = null;
+          if (recordedBlob.size > CONFIG.maxUploadBytes) {
+            clearAudioPreview();
+            setStatus("La registrazione supera 5 MB. Rifalla più breve o scegli un file più piccolo.", "error");
+          } else {
+            showPreview(recordedBlob);
+            recordHint.textContent = "Ascolta l’anteprima prima di confermare.";
+            setStatus("Registrazione pronta.", "success");
           }
-        };
+          if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+          recordingStream = null;
+          recordBtn.disabled = false;
+          recordBtn.textContent = "Registra di nuovo";
+          recordBtn.classList.remove("recording");
+          updateSubmit();
+        }, { once: true });
 
         mediaRecorder.start();
         recordBtn.textContent = "Ferma";
         recordBtn.classList.add("recording");
-        setStatus("Registrazione in corso...");
-      } catch (err) {
-        setStatus("Errore microfono: " + (err.message || err), "error");
+        recordHint.textContent = "Registrazione in corso...";
+        setStatus("");
+      } catch (error) {
+        resetRecording();
+        setStatus(`Errore microfono: ${error.message || error}`, "error");
       }
     });
 
     fileInput.addEventListener("change", () => {
       const file = fileInput.files?.[0] || null;
-      selectedFile = file;
       recordedBlob = null;
-
+      selectedFile = file;
       if (!file) {
-        enableSubmit();
+        updateSubmit();
         return;
       }
+      if (file.size > CONFIG.maxUploadBytes) {
+        clearAudioPreview();
+        setStatus("Il file supera il limite di 5 MB.", "error");
+        return;
+      }
+      showPreview(file);
+      recordHint.textContent = file.name;
+      setStatus("File pronto. Ascolta l’anteprima prima di confermare.", "success");
+    });
 
-      const url = URL.createObjectURL(file);
-      audioPlayer.src = url;
-      audioPlayer.style.display = "block";
-      setStatus("File audio pronto.", "success");
-      enableSubmit();
+    $("#cancelBtn").addEventListener("click", async () => {
+      resetRecording();
+      clearAudioPreview();
+      selectedDate = "";
+      dateInput.value = "";
+      reservation = null;
+      clearInterval(reservationTimer);
+      reservationActions.classList.add("hidden");
+      recordBtn.disabled = true;
+      fileInput.disabled = true;
+      recordHint.textContent = "Seleziona prima una data libera.";
+      setStatus("Registrazione annullata. La data tornerà disponibile entro 10 minuti.");
+      await loadCalendar();
     });
 
     sendBtn.addEventListener("click", async () => {
-      const date = dateInput.value;
+      if (busy) return;
+      if (adminCode) {
+        await replaceAdminAudio();
+        return;
+      }
+      await sendCollaboratorAudio();
+    });
+
+    async function sendCollaboratorAudio() {
       const audio = recordedBlob || selectedFile;
-
-      if (!date) {
-        setStatus("Seleziona una data.", "error");
-        return;
-      }
-
-      if (!audio) {
-        setStatus("Registra o carica un file.", "error");
-        return;
-      }
-
-      if (!ADMIN_MODE && date === ADMIN_DATE) {
-        setStatus("Il 12/11/2026 è riservato all’amministrazione.", "error");
-        return;
-      }
+      if (!reservation || !selectedDate || !audio) return;
 
       const form = new FormData();
-      form.append("audio", audio, audio.name || "audio.mp3");
-      form.append("date", date);
-      form.append("admin", ADMIN_MODE ? "1" : "0");
-      form.append("reader_name", localStorage.getItem("reader_name") || "");
+      form.set("audio", audio, uploadFilename(audio, selectedDate));
+      form.set("date", selectedDate);
+      form.set("session_id", sessionId);
+      form.set("reservation_id", reservation.id);
+      form.set("reader_name", "");
 
+      busy = true;
+      updateSubmit();
+      setStatus("Invio dell’audio al canale archivio...");
       try {
-        sendBtn.disabled = true;
-        setStatus("Invio in corso...");
-        const res = await fetch(`${APP_URL}/upload-audio`, {
+        const response = await fetch(`${CONFIG.functionsUrl}/upload-audio`, {
           method: "POST",
+          headers: headers(),
           body: form
         });
-
-        const result = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(result.error || "Invio non riuscito.");
-
+        await readJson(response);
+        clearInterval(reservationTimer);
+        reservation = null;
+        selectedDate = "";
+        dateInput.value = "";
+        clearAudioPreview();
+        reservationActions.classList.add("hidden");
         setStatus("Audio inviato correttamente.", "success");
-      } catch (err) {
-        setStatus(err.message || "Invio non riuscito.", "error");
+        await loadCalendar();
+      } catch (error) {
+        setStatus(error.message, "error");
       } finally {
-        sendBtn.disabled = false;
+        busy = false;
+        updateSubmit();
+      }
+    }
+
+    async function replaceAdminAudio() {
+      const audio = recordedBlob || selectedFile;
+      const item = adminItems.get(selectedDate);
+      if (!adminCode || !item || item.status !== "ready" || !audio) return;
+      if (!confirm(`Sostituire l’audio del ${selectedDate}?`)) return;
+
+      const form = new FormData();
+      form.set("date", selectedDate);
+      form.set("audio", audio, uploadFilename(audio, selectedDate));
+      busy = true;
+      updateSubmit();
+      setStatus("Sostituzione dell’audio in corso...");
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?action=replace`, {
+          method: "POST",
+          headers: headers({ "x-admin-code": adminCode }),
+          body: form
+        });
+        await readJson(response);
+        clearAudioPreview();
+        replaceInput.value = "";
+        setStatus("Audio sostituito.", "success");
+        await loadCalendar();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        busy = false;
+        updateSubmit();
+      }
+    }
+
+    function uploadFilename(audio, date) {
+      if (audio instanceof File && audio.name) return audio.name;
+      const extension = audio.type.includes("ogg") ? "ogg" : audio.type.includes("mp4") ? "m4a" : "webm";
+      return `registrazione-${date}.${extension}`;
+    }
+
+    function renderAdminSelection() {
+      if (!adminCode) return;
+      const item = adminItems.get(selectedDate);
+      const hasDate = !!selectedDate;
+      adminItemInfo.textContent = !hasDate
+        ? "Seleziona una data rossa o arancione nel calendario."
+        : item
+          ? `${selectedDate} · ${item.status}${item.sender_name ? ` · ${item.sender_name}` : ""}`
+          : `${selectedDate} · Nessun audio archiviato per questa data.`;
+      adminActions.classList.toggle("hidden", !item);
+      $("#listenBtn").disabled = busy || !item;
+      $("#deleteBtn").disabled = busy || !item || item.status !== "ready";
+      $("#replaceLabel").classList.toggle("hidden", !item || item.status !== "ready");
+      replaceInput.classList.toggle("hidden", !item || item.status !== "ready");
+      updateSubmit();
+    }
+
+    adminToggle.addEventListener("click", () => {
+      if (adminCode) return;
+      adminLogin.classList.toggle("hidden");
+      if (!adminLogin.classList.contains("hidden")) adminCodeInput.focus();
+    });
+
+    $("#adminCancelBtn").addEventListener("click", () => {
+      adminLogin.classList.add("hidden");
+      adminCodeInput.value = "";
+    });
+
+    $("#adminLoginBtn").addEventListener("click", loginAdmin);
+    adminCodeInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") loginAdmin();
+    });
+
+    async function loginAdmin() {
+      const candidate = adminCodeInput.value;
+      if (!candidate) {
+        setStatus("Inserisci il codice amministratore.", "error");
+        return;
+      }
+      busy = true;
+      $("#adminLoginBtn").disabled = true;
+      setStatus("Verifica del codice amministratore...");
+      try {
+        const query = new URLSearchParams({ action: "list", month: monthKey(viewMonth) });
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
+          method: "GET",
+          headers: headers({ "x-admin-code": candidate })
+        });
+        const data = await readJson(response);
+        adminCode = candidate;
+        adminItems = new Map((data.items || []).map((item) => [item.audio_date, item]));
+        adminLogin.classList.add("hidden");
+        adminSession.classList.remove("hidden");
+        adminToggle.classList.add("hidden");
+        adminCodeInput.value = "";
+        renderCalendar();
+        renderAdminSelection();
+        setStatus("Accesso amministratore attivo.", "success");
+      } catch (error) {
+        adminCodeInput.value = "";
+        setStatus(error.message || "Codice amministratore non valido.", "error");
+      } finally {
+        busy = false;
+        $("#adminLoginBtn").disabled = false;
+        updateSubmit();
+      }
+    }
+
+    $("#logoutBtn").addEventListener("click", () => {
+      adminCode = "";
+      adminItems.clear();
+      adminSession.classList.add("hidden");
+      adminToggle.classList.remove("hidden");
+      selectedDate = "";
+      dateInput.value = "";
+      clearAudioPreview();
+      renderCalendar();
+      setStatus("Uscita dall’area amministratore.");
+    });
+
+    $("#listenBtn").addEventListener("click", async () => {
+      if (!adminCode || !selectedDate) return;
+      const query = new URLSearchParams({ action: "listen", date: selectedDate });
+      setStatus("Caricamento audio...");
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
+          method: "GET",
+          headers: headers({ "x-admin-code": adminCode })
+        });
+        if (!response.ok) await readJson(response);
+        const blob = await response.blob();
+        showPreview(blob);
+        await audioPlayer.play().catch(() => {});
+        setStatus("Audio pronto all’ascolto.", "success");
+      } catch (error) {
+        setStatus(error.message, "error");
       }
     });
 
-    prevMonthBtn.addEventListener("click", async () => {
+    $("#deleteBtn").addEventListener("click", async () => {
+      if (!adminCode || !selectedDate) return;
+      if (!confirm(`Eliminare l’audio non pubblicato del ${selectedDate}?`)) return;
+      busy = true;
+      renderAdminSelection();
+      setStatus("Eliminazione dell’audio in corso...");
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?action=delete`, {
+          method: "POST",
+          headers: headers({ "Content-Type": "application/json", "x-admin-code": adminCode }),
+          body: JSON.stringify({ date: selectedDate })
+        });
+        await readJson(response);
+        clearAudioPreview();
+        setStatus("Audio eliminato. Il calendario è stato aggiornato.", "success");
+        await loadCalendar();
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        busy = false;
+        renderAdminSelection();
+      }
+    });
+
+    replaceInput.addEventListener("change", () => {
+      const file = replaceInput.files?.[0] || null;
+      recordedBlob = null;
+      selectedFile = file;
+      if (!file) {
+        updateSubmit();
+        return;
+      }
+      if (file.size > CONFIG.maxUploadBytes) {
+        clearAudioPreview();
+        replaceInput.value = "";
+        setStatus("Il file supera il limite di 5 MB.", "error");
+        return;
+      }
+      showPreview(file);
+      setStatus("Nuovo audio pronto per la sostituzione.", "success");
+    });
+
+    $("#prevMonth").addEventListener("click", async () => {
       viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
-      await loadCalendarFromSupabase();
-      renderCalendar();
+      await loadCalendar();
     });
 
-    nextMonthBtn.addEventListener("click", async () => {
+    $("#nextMonth").addEventListener("click", async () => {
       viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
-      await loadCalendarFromSupabase();
-      renderCalendar();
+      await loadCalendar();
     });
 
-    (async function init() {
-      await loadCalendarFromSupabase();
-      if (ADMIN_MODE) {
-        dateInput.value = ADMIN_DATE;
-        selectedDate = ADMIN_DATE;
-      } else {
-        dateInput.value = MIN_COLLAB_DATE;
-        selectedDate = MIN_COLLAB_DATE;
+    window.addEventListener("pagehide", () => {
+      resetRecording();
+      clearInterval(reservationTimer);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    });
+
+    async function initialize() {
+      if (CONFIG.anonKey === "INCOLLA_LA_CHIAVE_ANON_LEGACY_QUI") {
+        setStatus("Prima di pubblicare, inserisci la chiave pubblica anon del progetto nella configurazione del file.", "error");
       }
+      await loadCalendar();
       renderCalendar();
-      enableSubmit();
-    })();
+      updateSubmit();
+    }
+
+    initialize();
   </script>
 </body>
 </html>
