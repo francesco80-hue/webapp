@@ -146,6 +146,13 @@
     .microphone-choice { width: 100%; min-height: 62px; padding: 12px 14px; border: 2px solid #b5c7d7; border-radius: 12px; background: #f0f7ff; color: #173651; text-align: left; font-weight: 700; cursor: pointer; }
     .microphone-choice[aria-pressed="true"] { border-color: #146b37; background: #a7efb5; color: #12351e; }
     .microphone-choice span { display: block; margin-top: 3px; font-size: .84rem; font-weight: 400; }
+
+    .name-notice-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 18px; background: rgba(12, 35, 20, .58); }
+    .name-notice { width: min(100%, 360px); padding: 22px; border: 2px solid #b9e5c4; border-radius: 20px; background: #fff; text-align: center; box-shadow: 0 16px 44px rgba(0, 45, 20, .28); }
+    .name-notice h2 { margin: 0 0 9px; color: #087b36; font-size: 1.35rem; }
+    .name-notice p { margin: 0 0 18px; color: #26382c; font-size: 1rem; }
+    .name-notice button { min-width: 110px; min-height: 46px; padding: 10px 22px; border: 0; border-radius: 12px; background: #087b36; color: #fff; font-weight: 800; cursor: pointer; }
+    .name-notice button:focus-visible { outline: 3px solid #075bc5; outline-offset: 3px; }
     .hidden { display: none !important; }
     @media (max-width: 700px) {
       main { padding-left: 9px; padding-right: 9px; gap: 12px; }
@@ -166,11 +173,12 @@
       .month-controls { width: 100%; justify-content: center; gap: 8px; }
       .icon-button { width: 40px; height: 40px; border-radius: 11px; font-size: 1.55rem; }
       #monthLabel { min-width: 0; flex: 1; max-width: 250px; padding: 8px 7px; font-size: 1rem; }
-      .legend { justify-content: flex-start; gap: 10px 14px; padding: 10px 2px; font-size: .85rem; }
-      .legend li { flex: 1 1 42%; gap: 7px; }
-      .dot { width: 31px; height: 31px; flex-basis: 31px; border-radius: 8px; }
-      .legend strong { font-size: .88rem; }
-      .legend small { font-size: .72rem; }
+      .legend { flex-wrap: nowrap; justify-content: space-between; gap: 5px; padding: 9px 0; margin-bottom: 13px; font-size: .72rem; }
+      .legend li { flex: 0 1 auto; min-width: 0; gap: 5px; white-space: nowrap; }
+      .legend li > span:last-child { display: block; min-width: 0; }
+      .legend strong { font-size: .72rem; }
+      .legend small { display: none; }
+      .dot { width: 19px; height: 19px; flex: 0 0 19px; border-width: 2px; border-radius: 6px; }
       .calendar-grid { gap: 5px; }
       .weekday { font-size: .7rem; padding: 7px 0; }
       .day, .calendar-spacer { min-height: 52px; border-radius: 9px; }
@@ -194,7 +202,10 @@
     @media (max-width: 380px) {
       .sound-wave { display: none; }
       .day, .calendar-spacer { min-height: 45px; }
-      .legend li { flex-basis: 100%; }
+      .legend { gap: 3px; }
+      .legend li { gap: 3px; }
+      .legend strong { font-size: .66rem; }
+      .dot { width: 16px; height: 16px; flex-basis: 16px; }
       .audio-options { grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); gap: 8px; }
       .record-button { width: 116px; height: 116px; }
       .record-button::before { top: 18px; font-size: 2.7rem; }
@@ -353,6 +364,14 @@
     <p id="status" class="status" role="status" aria-live="polite"></p>
   </main>
 
+  <div id="nameNotice" class="name-notice-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="nameNoticeTitle" aria-describedby="nameNoticeMessage">
+    <section class="name-notice">
+      <h2 id="nameNoticeTitle">Prima di continuare</h2>
+      <p id="nameNoticeMessage">Inserisci il tuo nome per prenotare questa data.</p>
+      <button id="nameNoticeOk" type="button">OK</button>
+    </section>
+  </div>
+
   <script>
     const CONFIG = {
       functionsUrl: "https://iujvhykqsfsnjdbozsal.supabase.co/functions/v1",
@@ -416,6 +435,29 @@
     let busy = false;
 
     readerNameInput.value = localStorage.getItem(readerNameStorageKey) || "";
+
+    const nameNotice = $("#nameNotice");
+    const nameNoticeOk = $("#nameNoticeOk");
+
+    function showNameNotice() {
+      nameNotice.classList.remove("hidden");
+      nameNoticeOk.focus();
+    }
+
+    function closeNameNotice() {
+      nameNotice.classList.add("hidden");
+      readerNameInput.focus();
+    }
+
+    nameNoticeOk.addEventListener("click", closeNameNotice);
+    nameNotice.addEventListener("click", (event) => {
+      if (event.target === nameNotice) closeNameNotice();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !nameNotice.classList.contains("hidden")) {
+        closeNameNotice();
+      }
+    });
 
     function getReaderName() {
       return readerNameInput.value.trim().replace(/\s+/g, " ").slice(0, 100);
@@ -685,8 +727,7 @@
       }
 
       if (!getReaderName()) {
-        window.alert("Per prenotare questa data, inserisci prima il tuo nome.");
-        readerNameInput.focus();
+        showNameNotice();
         return;
       }
 
