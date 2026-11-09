@@ -249,7 +249,7 @@
           <ol>
             <li>Seleziona una data verde. Quando diventa arancione, hai fino a 10 minuti per completare l’invio.</li>
             <li>Scegli un luogo tranquillo e prepara il testo. Non leggere le parole tra parentesi.</li>
-             <li>Al primo utilizzo, consenti al browser di accedere al microfono. Se il telefono mostra più microfoni, scegli quello integrato; la pagina ricorderà la scelta su questo dispositivo.</li>
+            <li>Al primo utilizzo, consenti al browser di accedere al microfono. Se il telefono mostra più microfoni, scegli quello integrato; la pagina ricorderà la scelta su questo dispositivo.</li>
             <li>Inizia dicendo: “Buongiorno! Questa è la Scrittura del giorno di [data]”.</li>
             <li>Leggi la Scrittura. Poi introduci il commento con: “Il commento dice…” e leggilo.</li>
             <li>Concludi con: “Fine del commento, buona giornata”.</li>
@@ -328,8 +328,7 @@
         </section>
       </div>
     </section>
-
-    <section id="reservationActions" class="panel hidden">
+        <section id="reservationActions" class="panel hidden">
       <p id="reservationInfo" class="small"></p>
       <div class="button-row">
         <button id="cancelBtn" class="button danger" type="button">Annulla</button>
@@ -398,12 +397,15 @@
     const confirmMicrophoneChoiceBtn = $("#confirmMicrophoneChoiceBtn");
     const statusEl = $("#status");
     const reservationActions = $("#reservationActions");
+    const cancelBtn = $("#cancelBtn");
     const reservationInfo = $("#reservationInfo");
     const sendBtn = $("#sendBtn");
     const adminToggle = $("#adminToggle");
+
     // L'accesso amministratore compare solo aprendo il link personale con ?admin=1.
     const adminAccessEnabled = new URLSearchParams(window.location.search).get("admin") === "1";
     if (!adminAccessEnabled) adminToggle.classList.add("hidden");
+
     const adminLogin = $("#adminLogin");
     const adminCodeInput = $("#adminCode");
     const adminSession = $("#adminSession");
@@ -506,6 +508,7 @@
         permissionStream = await navigator.mediaDevices.getUserMedia(
           microphoneConstraints()
         );
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         availableMicrophones = devices.filter(
           (device) => device.kind === "audioinput" && device.deviceId
@@ -527,6 +530,7 @@
 
         pendingMicrophoneId = selectedMicrophoneId;
         microphoneChoices.replaceChildren();
+
         availableMicrophones.forEach((device, index) => {
           const button = document.createElement("button");
           button.type = "button";
@@ -535,8 +539,10 @@
 
           const name = document.createElement("strong");
           name.textContent = device.label || `Microfono ${index + 1}`;
+
           const description = document.createElement("span");
           description.textContent = microphoneDescription(device.label);
+
           button.append(name, description);
 
           button.addEventListener("click", () => {
@@ -546,11 +552,13 @@
             }
             confirmMicrophoneChoiceBtn.disabled = false;
           });
+
           microphoneChoices.appendChild(button);
         });
 
         confirmMicrophoneChoiceBtn.disabled = !pendingMicrophoneId;
         microphoneDialog.classList.remove("hidden");
+
         return await new Promise((resolve) => {
           microphoneChoiceResolve = resolve;
         });
@@ -561,14 +569,19 @@
 
     function microphoneDescription(label = "") {
       const normalized = label.toLowerCase();
+
       if (normalized.includes("bluetooth") || normalized.includes("headset") || normalized.includes("earpiece")) {
         return "Auricolare o microfono di un dispositivo collegato";
       }
+
       if (normalized.includes("speakerphone")) return "Microfono del vivavoce del telefono";
+
       if (normalized.includes("microphone") || normalized.includes("microfono")) {
         return "Ingresso microfono del telefono o del dispositivo";
       }
+
       if (normalized.includes("default")) return "Sorgente scelta automaticamente dal telefono";
+
       return "Sorgente audio disponibile su questo dispositivo";
     }
 
@@ -583,6 +596,7 @@
       microphoneDialog.classList.add("hidden");
       const resolve = microphoneChoiceResolve;
       microphoneChoiceResolve = null;
+
       if (!deviceId) {
         resolve?.("");
         return;
@@ -593,11 +607,258 @@
       updateSelectedMicrophoneLabel();
       resolve?.(deviceId);
     }
-
-    function setStatus(message, kind = "") {
+        function setStatus(message, kind = "") {
       statusEl.textContent = message;
       statusEl.className = `status${kind ? ` ${kind}` : ""}`;
     }
+
+    // --------------------------------------------------
+    // CONTROLLO VOCALE DELLA DATA PRONUNCIATA
+    // --------------------------------------------------
+
+    let speechRecognition = null;
+    let speechCheckTimer = null;
+    let speechCheckStatus = "unavailable";
+    let speechRecognizedDate = "";
+    let speechRecognitionText = "";
+    let speechCheckPromise = Promise.resolve();
+    let speechCheckResolve = null;
+
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const italianMonths = {
+      gennaio: "01",
+      febbraio: "02",
+      marzo: "03",
+      aprile: "04",
+      maggio: "05",
+      giugno: "06",
+      luglio: "07",
+      agosto: "08",
+      settembre: "09",
+      ottobre: "10",
+      novembre: "11",
+      dicembre: "12"
+    };
+
+    function parseSpokenDate(text) {
+      if (!text) return "";
+
+      const normalized = text
+        .toLowerCase()
+        .replace(/[.,;!?]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // Formato numerico: 15/11/2026 oppure 15-11-2026
+      let match = normalized.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](20\d{2}))?\b/);
+
+      if (match) {
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3] || selectedDate.slice(0, 4));
+
+        return makeRecognizedDate(year, month, day);
+      }
+
+      // Formato parlato: 15 novembre 2026
+      for (const [monthName, monthNumber] of Object.entries(italianMonths)) {
+        const escapedMonth = monthName;
+        const expression = new RegExp(
+          `\\b(\\d{1,2})\\s+(?:di\\s+)?${escapedMonth}\\s*(20\\d{2})?\\b`,
+          "i"
+        );
+
+        match = normalized.match(expression);
+
+        if (match) {
+          const day = Number(match[1]);
+          const year = Number(match[2] || selectedDate.slice(0, 4));
+
+          return makeRecognizedDate(year, Number(monthNumber), day);
+        }
+      }
+
+      return "";
+    }
+
+    function makeRecognizedDate(year, month, day) {
+      if (
+        !Number.isInteger(year) ||
+        !Number.isInteger(month) ||
+        !Number.isInteger(day) ||
+        year < 2020 ||
+        year > 2100 ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+      ) {
+        return "";
+      }
+
+      const date = new Date(year, month - 1, day);
+
+      if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+      ) {
+        return "";
+      }
+
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+
+    let speechStopFallbackTimer = null;
+    let speechStopRequested = false;
+
+    function completeSpeechCheck(fallbackStatus = "not_recognized") {
+      clearTimeout(speechCheckTimer);
+      clearTimeout(speechStopFallbackTimer);
+      speechCheckTimer = null;
+      speechStopFallbackTimer = null;
+
+      const recognized = parseSpokenDate(speechRecognitionText);
+      if (recognized) {
+        speechRecognizedDate = recognized;
+        speechCheckStatus = "recognized";
+      } else if (speechCheckStatus !== "unavailable") {
+        speechCheckStatus = fallbackStatus;
+      }
+
+      speechRecognition = null;
+      speechStopRequested = false;
+
+      if (speechCheckResolve) {
+        const resolve = speechCheckResolve;
+        speechCheckResolve = null;
+        resolve();
+      }
+    }
+
+    // Ferma il riconoscimento, ma attende onend prima di valutare il testo finale.
+    function finishSpeechCheck() {
+      clearTimeout(speechCheckTimer);
+      speechCheckTimer = null;
+
+      const recognition = speechRecognition;
+      if (!recognition) {
+        completeSpeechCheck("unavailable");
+        return;
+      }
+
+      if (!speechStopRequested) {
+        speechStopRequested = true;
+        try {
+          recognition.stop();
+        } catch {
+          // Se stop non è più disponibile, il fallback chiude il controllo.
+        }
+      }
+
+      // Alcuni browser non inviano onend dopo un errore: non lasciare la Promise sospesa.
+      clearTimeout(speechStopFallbackTimer);
+      speechStopFallbackTimer = setTimeout(() => {
+        completeSpeechCheck("unavailable");
+      }, 2000);
+    }
+
+    function startSpeechDateCheck() {
+      clearTimeout(speechCheckTimer);
+      clearTimeout(speechStopFallbackTimer);
+
+      speechRecognizedDate = "";
+      speechRecognitionText = "";
+      speechCheckStatus = "unavailable";
+      speechStopRequested = false;
+
+      if (!SpeechRecognitionAPI) {
+        speechCheckPromise = Promise.resolve();
+        return;
+      }
+
+      try {
+        const recognition = new SpeechRecognitionAPI();
+        speechRecognition = recognition;
+        speechCheckStatus = "pending";
+
+        recognition.lang = "it-IT";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
+
+        speechCheckPromise = new Promise((resolve) => {
+          speechCheckResolve = resolve;
+        });
+
+        recognition.onresult = (event) => {
+          let transcript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            const result = event.results[i];
+            if (result && result[0]?.transcript) {
+              transcript += ` ${result[0].transcript}`;
+            }
+          }
+
+          speechRecognitionText = transcript.trim();
+          const recognized = parseSpokenDate(speechRecognitionText);
+          if (recognized) {
+            speechRecognizedDate = recognized;
+            speechCheckStatus = "recognized";
+          }
+        };
+
+        recognition.onerror = () => {
+          speechCheckStatus = "unavailable";
+        };
+
+        recognition.onend = () => {
+          completeSpeechCheck("not_recognized");
+        };
+
+        recognition.start();
+
+        // Ascolta soltanto i primi 15 secondi della registrazione.
+        speechCheckTimer = setTimeout(finishSpeechCheck, 15000);
+
+      } catch (error) {
+        speechRecognition = null;
+        speechCheckStatus = "unavailable";
+        completeSpeechCheck("unavailable");
+        speechCheckPromise = Promise.resolve();
+      }
+    }
+
+    function stopSpeechDateCheck() {
+      if (speechRecognition) {
+        finishSpeechCheck();
+      }
+    }
+
+    async function waitForSpeechCheck() {
+      if (speechCheckStatus === "pending" && speechCheckPromise) {
+        await Promise.race([
+          speechCheckPromise,
+          new Promise((resolve) => setTimeout(resolve, 3000))
+        ]);
+      }
+
+      if (speechCheckStatus === "pending") {
+        // Il controllo non deve mai impedire l'invio dell'audio.
+        speechCheckStatus = "unavailable";
+        if (speechCheckResolve) {
+          const resolve = speechCheckResolve;
+          speechCheckResolve = null;
+          resolve();
+        }
+      }
+    }
+
+    // --------------------------------------------------
+    // CALENDARIO E PRENOTAZIONI
+    // --------------------------------------------------
 
     function monthKey(date) {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -610,31 +871,47 @@
     function parseIso(value) {
       const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
       if (!match) return null;
+
       const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+
       return toIso(date) === value ? date : null;
     }
 
     function monthTitle(date) {
-      return new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(date);
+      return new Intl.DateTimeFormat("it-IT", {
+        month: "long",
+        year: "numeric"
+      }).format(date);
     }
 
     async function readJson(response) {
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `Richiesta non riuscita (HTTP ${response.status})`);
+
+      if (!response.ok) {
+        throw new Error(data.error || `Richiesta non riuscita (HTTP ${response.status})`);
+      }
+
       return data;
     }
 
     async function loadCalendar() {
       const query = new URLSearchParams({ month: monthKey(viewMonth) });
+
       try {
         const response = await fetch(`${CONFIG.functionsUrl}/audio-calendar?${query}`, {
           method: "GET",
           headers: headers()
         });
+
         const data = await readJson(response);
-        if (!data.days || typeof data.days !== "object") throw new Error("Risposta calendario non valida");
+
+        if (!data.days || typeof data.days !== "object") {
+          throw new Error("Risposta calendario non valida");
+        }
+
         calendarData = data.days;
         calendarFailed = false;
+
       } catch (error) {
         calendarData = {};
         calendarFailed = true;
@@ -642,22 +919,33 @@
       }
 
       if (adminCode) await loadAdminItems();
+
       renderCalendar();
     }
 
     async function loadAdminItems() {
-      const query = new URLSearchParams({ action: "list", month: monthKey(viewMonth) });
+      const query = new URLSearchParams({
+        action: "list",
+        month: monthKey(viewMonth)
+      });
+
       try {
         const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
           method: "GET",
           headers: headers({ "x-admin-code": adminCode })
         });
+
         const data = await readJson(response);
-        adminItems = new Map((data.items || []).map((item) => [item.audio_date, item]));
+
+        adminItems = new Map(
+          (data.items || []).map((item) => [item.audio_date, item])
+        );
+
       } catch (error) {
         adminItems.clear();
         setStatus(`Elenco amministrativo non disponibile: ${error.message}`, "error");
       }
+
       renderAdminSelection();
     }
 
@@ -691,31 +979,40 @@
       for (let day = 1; day <= lastDay; day++) {
         const date = toIso(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day));
         const state = dayState(date);
+
         const button = document.createElement("button");
         button.type = "button";
         button.className = `day ${state}${date === selectedDate ? " selected" : ""}${date === toIso(new Date()) ? " today" : ""}`;
+
         const dayNumber = document.createElement("span");
         dayNumber.className = "day-number";
         dayNumber.textContent = String(day);
         button.appendChild(dayNumber);
+
         const isToday = date === toIso(new Date());
+
         if (isToday) {
           const todayLabel = document.createElement("span");
           todayLabel.className = "day-today-label";
           todayLabel.textContent = "OGGI";
           button.appendChild(todayLabel);
         }
+
         button.setAttribute("aria-label", `${date}, ${state}${isToday ? ", oggi" : ""}`);
+
         button.disabled = calendarFailed || (adminCode
           ? state === "muted"
           : state !== "green" || date < CONFIG.minCollaboratorDate);
+
         button.addEventListener("click", () => chooseDate(date, state));
+
         calendarEl.appendChild(button);
       }
     }
 
     async function chooseDate(date, state) {
       if (busy) return;
+
       if (adminCode) {
         selectedDate = date;
         dateInput.value = date;
@@ -749,21 +1046,33 @@
         const response = await fetch(`${CONFIG.functionsUrl}/reserve-audio`, {
           method: "POST",
           headers: headers({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ date, session_id: sessionId, reader_name: getReaderName() })
+          body: JSON.stringify({
+            date,
+            session_id: sessionId,
+            reader_name: getReaderName()
+          })
         });
+
         const result = await readJson(response);
+
         reservation = {
           id: result.reservation_id,
           expiresAt: result.expires_at
         };
-        if (!reservation.id || !reservation.expiresAt) throw new Error("Risposta prenotazione incompleta");
+
+        if (!reservation.id || !reservation.expiresAt) {
+          throw new Error("Risposta prenotazione incompleta");
+        }
+
         startReservationTimer();
         reservationActions.classList.remove("hidden");
         recordBtn.disabled = false;
         fileInput.disabled = false;
         recordHint.textContent = "Registra e ascolta l’audio, oppure scegli un file.";
         setStatus("Data riservata. La prenotazione scade tra 10 minuti.", "success");
+
         await loadCalendar();
+
       } catch (error) {
         reservation = null;
         selectedDate = "";
@@ -773,6 +1082,7 @@
         fileInput.disabled = true;
         setStatus(error.message, "error");
         await loadCalendar();
+
       } finally {
         busy = false;
         renderCalendar();
@@ -782,9 +1092,12 @@
 
     function startReservationTimer() {
       clearInterval(reservationTimer);
+
       reservationTimer = setInterval(() => {
         if (!reservation) return;
+
         const remaining = new Date(reservation.expiresAt).getTime() - Date.now();
+
         if (remaining <= 0) {
           clearInterval(reservationTimer);
           reservation = null;
@@ -798,57 +1111,85 @@
           loadCalendar();
           return;
         }
+
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-        reservationInfo.textContent = `Prenotazione valida ancora ${minutes}:${String(seconds).padStart(2, "0")}.`;
+
+        reservationInfo.textContent =
+          `Prenotazione valida ancora ${minutes}:${String(seconds).padStart(2, "0")}.`;
+
       }, 1000);
     }
 
     function clearAudioPreview() {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
+
       previewUrl = "";
       audioPlayer.removeAttribute("src");
       audioPlayer.load();
       audioPlayer.style.display = "none";
+
       recordedBlob = null;
       selectedFile = null;
       fileInput.value = "";
       replaceInput.value = "";
+
       updateSubmit();
     }
 
     function showPreview(blob) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
+
       previewUrl = URL.createObjectURL(blob);
       audioPlayer.src = previewUrl;
       audioPlayer.style.display = "block";
+
       updateSubmit();
     }
 
     function updateSubmit() {
       if (adminCode) {
         const item = adminItems.get(selectedDate);
+
         sendBtn.disabled = true;
-        adminReplaceBtn.disabled = busy || !item || item.status !== "ready" || !(recordedBlob || selectedFile);
+
+        adminReplaceBtn.disabled =
+          busy || !item || item.status !== "ready" || !(recordedBlob || selectedFile);
+
       } else {
         adminReplaceBtn.disabled = true;
         sendBtn.textContent = "Conferma e invia";
-        const isReserved = reservation && new Date(reservation.expiresAt).getTime() > Date.now();
-        sendBtn.disabled = busy || !isReserved || !(recordedBlob || selectedFile);
+
+        const isReserved =
+          reservation && new Date(reservation.expiresAt).getTime() > Date.now();
+
+        sendBtn.disabled =
+          busy || !isReserved || !(recordedBlob || selectedFile);
       }
     }
 
     function resetRecording() {
-      if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-      if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+      stopSpeechDateCheck();
+
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+
+      if (recordingStream) {
+        recordingStream.getTracks().forEach((track) => track.stop());
+      }
+
       recordingStream = null;
       mediaRecorder = null;
+
       recordBtn.classList.remove("recording");
       recordBtn.textContent = "Registra";
     }
 
     confirmMicrophoneChoiceBtn.addEventListener("click", () => {
-      if (pendingMicrophoneId) finishMicrophoneChoice(pendingMicrophoneId);
+      if (pendingMicrophoneId) {
+        finishMicrophoneChoice(pendingMicrophoneId);
+      }
     });
 
     $("#cancelMicrophoneChoiceBtn").addEventListener("click", () => {
@@ -858,17 +1199,28 @@
 
     changeMicrophoneBtn.addEventListener("click", async () => {
       if (busy || mediaRecorder?.state === "recording") return;
+
       try {
         const choice = await chooseMicrophone();
-        if (choice) setStatus("Microfono aggiornato. Puoi registrare di nuovo.", "success");
+
+        if (choice) {
+          setStatus("Microfono aggiornato. Puoi registrare di nuovo.", "success");
+        }
+
       } catch (error) {
         setStatus(`Impossibile selezionare il microfono: ${error.message || error}`, "error");
       }
     });
 
+    // --------------------------------------------------
+    // AVVIO E ARRESTO DELLA REGISTRAZIONE
+    // --------------------------------------------------
+
     recordBtn.addEventListener("click", async () => {
       if (!reservation || busy || adminCode) return;
+
       if (mediaRecorder?.state === "recording") {
+        stopSpeechDateCheck();
         mediaRecorder.stop();
         recordBtn.disabled = true;
         recordHint.textContent = "Preparazione dell’audio...";
@@ -879,6 +1231,7 @@
         if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
           throw new Error("Questo browser non supporta la registrazione audio.");
         }
+
         if (!localStorage.getItem(microphoneStorageKey)) {
           const choice = await chooseMicrophone();
           if (!choice) return;
@@ -888,64 +1241,102 @@
           recordingStream = await navigator.mediaDevices.getUserMedia(
             microphoneConstraints(selectedMicrophoneId)
           );
+
         } catch (error) {
-          if (!selectedMicrophoneId || !["NotFoundError", "OverconstrainedError"].includes(error.name)) {
+          if (
+            !selectedMicrophoneId ||
+            !["NotFoundError", "OverconstrainedError"].includes(error.name)
+          ) {
             throw error;
           }
 
           localStorage.removeItem(microphoneStorageKey);
           selectedMicrophoneId = "";
+
           const choice = await chooseMicrophone();
-          if (choice) setStatus("Il microfono salvato non è più disponibile. Premi Registra per riprovare.", "error");
+
+          if (choice) {
+            setStatus("Il microfono salvato non è più disponibile. Premi Registra per riprovare.", "error");
+          }
+
           return;
         }
 
-        const supported = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
-        const mimeType = supported.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+        const supported = [
+          "audio/webm;codecs=opus",
+          "audio/mp4",
+          "audio/ogg;codecs=opus"
+        ];
+
+        const mimeType = supported.find((type) =>
+          MediaRecorder.isTypeSupported(type)
+        ) || "";
+
         const recorderOptions = {
           ...(mimeType ? { mimeType } : {}),
           audioBitsPerSecond: 128000
         };
+
         try {
           mediaRecorder = new MediaRecorder(recordingStream, recorderOptions);
+
         } catch {
           mediaRecorder = mimeType
             ? new MediaRecorder(recordingStream, { mimeType })
             : new MediaRecorder(recordingStream);
         }
+
         audioChunks = [];
         recordedBlob = null;
         selectedFile = null;
         fileInput.value = "";
 
         mediaRecorder.addEventListener("dataavailable", (event) => {
-          if (event.data.size) audioChunks.push(event.data);
+          if (event.data.size) {
+            audioChunks.push(event.data);
+          }
         });
+
         mediaRecorder.addEventListener("stop", () => {
+          stopSpeechDateCheck();
+
           const type = mediaRecorder?.mimeType || "audio/webm";
           recordedBlob = new Blob(audioChunks, { type });
           selectedFile = null;
+
           if (recordedBlob.size > CONFIG.maxUploadBytes) {
             clearAudioPreview();
             setStatus("La registrazione supera 5 MB. Rifalla più breve o scegli un file più piccolo.", "error");
+
           } else {
             showPreview(recordedBlob);
             recordHint.textContent = "Ascolta l’anteprima prima di confermare.";
             setStatus("Registrazione pronta.", "success");
           }
-          if (recordingStream) recordingStream.getTracks().forEach((track) => track.stop());
+
+          if (recordingStream) {
+            recordingStream.getTracks().forEach((track) => track.stop());
+          }
+
           recordingStream = null;
           recordBtn.disabled = false;
           recordBtn.textContent = "Registra di nuovo";
           recordBtn.classList.remove("recording");
+
           updateSubmit();
+
         }, { once: true });
 
         mediaRecorder.start();
+
+        // Avvia il riconoscimento della data pronunciata nei primi 15 secondi.
+        startSpeechDateCheck();
+
         recordBtn.textContent = "Ferma";
         recordBtn.classList.add("recording");
         recordHint.textContent = "Registrazione in corso...";
         setStatus("");
+
       } catch (error) {
         resetRecording();
         setStatus(`Errore microfono: ${error.message || error}`, "error");
@@ -954,43 +1345,47 @@
 
     fileInput.addEventListener("change", () => {
       const file = fileInput.files?.[0] || null;
+
       recordedBlob = null;
       selectedFile = file;
+
       if (!file) {
         updateSubmit();
         return;
       }
+
       if (file.size > CONFIG.maxUploadBytes) {
         clearAudioPreview();
         setStatus("Il file supera il limite di 5 MB.", "error");
         return;
       }
+
       showPreview(file);
       recordHint.textContent = file.name;
       setStatus("File pronto. Ascolta l’anteprima prima di confermare.", "success");
     });
+        cancelBtn.addEventListener("click", async () => {
+      if (!reservation || busy) return;
 
-    $("#cancelBtn").addEventListener("click", async () => {
       const activeReservation = reservation;
       let releaseError = null;
       busy = true;
+      cancelBtn.disabled = true;
       setStatus("Annullamento della prenotazione...");
 
-      if (activeReservation) {
-        try {
-          const response = await fetch(`${CONFIG.functionsUrl}/reserve-audio`, {
-            method: "POST",
-            headers: headers({ "Content-Type": "application/json" }),
-            body: JSON.stringify({
-              action: "cancel",
-              session_id: sessionId,
-              reservation_id: activeReservation.id
-            })
-          });
-          await readJson(response);
-        } catch (error) {
-          releaseError = error;
-        }
+      try {
+        const response = await fetch(`${CONFIG.functionsUrl}/reserve-audio`, {
+          method: "POST",
+          headers: headers({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            action: "cancel",
+            session_id: sessionId,
+            reservation_id: activeReservation.id
+          })
+        });
+        await readJson(response);
+      } catch (error) {
+        releaseError = error;
       }
 
       resetRecording();
@@ -1004,85 +1399,154 @@
       fileInput.disabled = true;
       recordHint.textContent = "Seleziona prima una data libera.";
       busy = false;
-      setStatus(releaseError
-        ? "Registrazione annullata. La prenotazione scadrà entro 10 minuti."
-        : "Registrazione annullata. La data è stata liberata.", releaseError ? "error" : "success");
+      cancelBtn.disabled = false;
+
+      setStatus(
+        releaseError
+          ? "Registrazione annullata. La prenotazione scadrà entro 10 minuti."
+          : "Registrazione annullata. La data è stata liberata.",
+        releaseError ? "error" : "success"
+      );
+
       await loadCalendar();
     });
 
     sendBtn.addEventListener("click", async () => {
       if (busy) return;
+
       if (adminCode) {
         await replaceAdminAudio();
         return;
       }
+
       await sendCollaboratorAudio();
     });
 
     adminReplaceBtn.addEventListener("click", replaceAdminAudio);
 
+    // --------------------------------------------------
+    // INVIO AUDIO DEL COLLABORATORE
+    // --------------------------------------------------
+
     async function sendCollaboratorAudio() {
       const audio = recordedBlob || selectedFile;
+
       if (!reservation || !selectedDate || !audio) return;
+      const audioDate = selectedDate;
+
+      // Se è stato scelto un file, non abbiamo il controllo vocale.
+      if (selectedFile) {
+        speechRecognizedDate = "";
+        speechCheckStatus = "unavailable";
+      }
+
+      // Attende il completamento del controllo vocale, se disponibile.
+      await waitForSpeechCheck();
+
+      // Confronta la data pronunciata con quella selezionata nel calendario.
+      if (speechRecognizedDate) {
+        speechCheckStatus =
+          speechRecognizedDate === audioDate ? "ok" : "mismatch";
+      } else if (speechCheckStatus !== "unavailable") {
+        speechCheckStatus = "not_recognized";
+      }
 
       const form = new FormData();
-      form.set("audio", audio, uploadFilename(audio, selectedDate));
-      form.set("date", selectedDate);
+
+      form.set("audio", audio, uploadFilename(audio, audioDate));
+      form.set("date", audioDate);
       form.set("session_id", sessionId);
       form.set("reservation_id", reservation.id);
       form.set("reader_name", getReaderName());
 
+      // Informazioni aggiuntive per il controllo amministrativo.
+      form.set("recognized_date", speechRecognizedDate || "");
+      form.set("speech_check_status", speechCheckStatus);
+
       busy = true;
       updateSubmit();
       setStatus("Invio dell’audio al canale archivio...");
+
       try {
         const response = await fetch(`${CONFIG.functionsUrl}/upload-audio`, {
           method: "POST",
           headers: headers(),
           body: form
         });
+
         await readJson(response);
+
         clearInterval(reservationTimer);
         reservation = null;
         selectedDate = "";
         dateInput.value = "";
+
         clearAudioPreview();
         reservationActions.classList.add("hidden");
+
         setStatus("Audio inviato correttamente.", "success");
+
         await loadCalendar();
+
       } catch (error) {
         setStatus(error.message, "error");
+
       } finally {
         busy = false;
         updateSubmit();
       }
     }
 
+    // --------------------------------------------------
+    // SOSTITUZIONE AUDIO DA PARTE DELL'AMMINISTRATORE
+    // --------------------------------------------------
+
     async function replaceAdminAudio() {
       const audio = recordedBlob || selectedFile;
       const item = adminItems.get(selectedDate);
-      if (!adminCode || !item || item.status !== "ready" || !audio) return;
+
+      if (
+        !adminCode ||
+        !item ||
+        item.status !== "ready" ||
+        !audio
+      ) {
+        return;
+      }
+
       if (!confirm(`Sostituire l’audio del ${selectedDate}?`)) return;
 
       const form = new FormData();
+
       form.set("date", selectedDate);
       form.set("audio", audio, uploadFilename(audio, selectedDate));
+
       busy = true;
       updateSubmit();
       setStatus("Sostituzione dell’audio in corso...");
+
       try {
-        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?action=replace`, {
-          method: "POST",
-          headers: headers({ "x-admin-code": adminCode }),
-          body: form
-        });
+        const response = await fetch(
+          `${CONFIG.functionsUrl}/audio-admin?action=replace`,
+          {
+            method: "POST",
+            headers: headers({ "x-admin-code": adminCode }),
+            body: form
+          }
+        );
+
         await readJson(response);
+
         clearAudioPreview();
         replaceInput.value = "";
+
         setStatus("Audio sostituito.", "success");
+
         await loadCalendar();
+
       } catch (error) {
         setStatus(error.message, "error");
+
       } finally {
         busy = false;
         updateSubmit();
@@ -1091,32 +1555,63 @@
 
     function uploadFilename(audio, date) {
       if (audio instanceof File && audio.name) return audio.name;
-      const extension = audio.type.includes("ogg") ? "ogg" : audio.type.includes("mp4") ? "m4a" : "webm";
+
+      const extension = audio.type.includes("ogg")
+        ? "ogg"
+        : audio.type.includes("mp4")
+          ? "m4a"
+          : "webm";
+
       return `registrazione-${date}.${extension}`;
     }
 
+    // --------------------------------------------------
+    // AREA AMMINISTRATORE
+    // --------------------------------------------------
+
     function renderAdminSelection() {
       if (!adminCode) return;
+
       const item = adminItems.get(selectedDate);
       const hasDate = !!selectedDate;
+
       adminItemInfo.textContent = !hasDate
         ? "Seleziona una data rossa o arancione nel calendario."
         : item
           ? `${selectedDate} · ${item.status}${item.sender_name ? ` · ${item.sender_name}` : ""}`
           : `${selectedDate} · Nessun audio archiviato per questa data.`;
+
       adminActions.classList.toggle("hidden", !item);
+
       $("#listenBtn").disabled = busy || !item;
       $("#deleteBtn").disabled = busy || !item || item.status !== "ready";
-      $("#replaceLabel").classList.toggle("hidden", !item || item.status !== "ready");
-      replaceInput.classList.toggle("hidden", !item || item.status !== "ready");
-      adminReplaceBtn.classList.toggle("hidden", !item || item.status !== "ready");
+
+      $("#replaceLabel").classList.toggle(
+        "hidden",
+        !item || item.status !== "ready"
+      );
+
+      replaceInput.classList.toggle(
+        "hidden",
+        !item || item.status !== "ready"
+      );
+
+      adminReplaceBtn.classList.toggle(
+        "hidden",
+        !item || item.status !== "ready"
+      );
+
       updateSubmit();
     }
 
     adminToggle.addEventListener("click", () => {
       if (adminCode) return;
+
       adminLogin.classList.toggle("hidden");
-      if (!adminLogin.classList.contains("hidden")) adminCodeInput.focus();
+
+      if (!adminLogin.classList.contains("hidden")) {
+        adminCodeInput.focus();
+      }
     });
 
     $("#adminCancelBtn").addEventListener("click", () => {
@@ -1125,39 +1620,62 @@
     });
 
     $("#adminLoginBtn").addEventListener("click", loginAdmin);
+
     adminCodeInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") loginAdmin();
     });
 
     async function loginAdmin() {
       const candidate = adminCodeInput.value;
+
       if (!candidate) {
         setStatus("Inserisci il codice amministratore.", "error");
         return;
       }
+
       busy = true;
       $("#adminLoginBtn").disabled = true;
+
       setStatus("Verifica del codice amministratore...");
+
       try {
-        const query = new URLSearchParams({ action: "list", month: monthKey(viewMonth) });
-        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
-          method: "GET",
-          headers: headers({ "x-admin-code": candidate })
+        const query = new URLSearchParams({
+          action: "list",
+          month: monthKey(viewMonth)
         });
+
+        const response = await fetch(
+          `${CONFIG.functionsUrl}/audio-admin?${query}`,
+          {
+            method: "GET",
+            headers: headers({ "x-admin-code": candidate })
+          }
+        );
+
         const data = await readJson(response);
+
         adminCode = candidate;
-        adminItems = new Map((data.items || []).map((item) => [item.audio_date, item]));
+
+        adminItems = new Map(
+          (data.items || []).map((item) => [item.audio_date, item])
+        );
+
         adminLogin.classList.add("hidden");
         adminSession.classList.remove("hidden");
         adminToggle.classList.add("hidden");
         collaboratorNameSection.classList.add("hidden");
+
         adminCodeInput.value = "";
+
         renderCalendar();
         renderAdminSelection();
+
         setStatus("Accesso amministratore attivo.", "success");
+
       } catch (error) {
         adminCodeInput.value = "";
         setStatus(error.message || "Codice amministratore non valido.", "error");
+
       } finally {
         busy = false;
         $("#adminLoginBtn").disabled = false;
@@ -1168,30 +1686,49 @@
     $("#logoutBtn").addEventListener("click", () => {
       adminCode = "";
       adminItems.clear();
+
       adminSession.classList.add("hidden");
       adminToggle.classList.toggle("hidden", !adminAccessEnabled);
       collaboratorNameSection.classList.remove("hidden");
+
       selectedDate = "";
       dateInput.value = "";
+
       clearAudioPreview();
       renderCalendar();
+
       setStatus("Uscita dall’area amministratore.");
     });
 
     $("#listenBtn").addEventListener("click", async () => {
       if (!adminCode || !selectedDate) return;
-      const query = new URLSearchParams({ action: "listen", date: selectedDate });
+
+      const query = new URLSearchParams({
+        action: "listen",
+        date: selectedDate
+      });
+
       setStatus("Caricamento audio...");
+
       try {
-        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?${query}`, {
-          method: "GET",
-          headers: headers({ "x-admin-code": adminCode })
-        });
+        const response = await fetch(
+          `${CONFIG.functionsUrl}/audio-admin?${query}`,
+          {
+            method: "GET",
+            headers: headers({ "x-admin-code": adminCode })
+          }
+        );
+
         if (!response.ok) await readJson(response);
+
         const blob = await response.blob();
+
         showPreview(blob);
+
         await audioPlayer.play().catch(() => {});
+
         setStatus("Audio pronto all’ascolto.", "success");
+
       } catch (error) {
         setStatus(error.message, "error");
       }
@@ -1199,22 +1736,40 @@
 
     $("#deleteBtn").addEventListener("click", async () => {
       if (!adminCode || !selectedDate) return;
-      if (!confirm(`Eliminare l’audio non pubblicato del ${selectedDate}?`)) return;
+
+      if (!confirm(`Eliminare l’audio non pubblicato del ${selectedDate}?`)) {
+        return;
+      }
+
       busy = true;
       renderAdminSelection();
+
       setStatus("Eliminazione dell’audio in corso...");
+
       try {
-        const response = await fetch(`${CONFIG.functionsUrl}/audio-admin?action=delete`, {
-          method: "POST",
-          headers: headers({ "Content-Type": "application/json", "x-admin-code": adminCode }),
-          body: JSON.stringify({ date: selectedDate })
-        });
+        const response = await fetch(
+          `${CONFIG.functionsUrl}/audio-admin?action=delete`,
+          {
+            method: "POST",
+            headers: headers({
+              "Content-Type": "application/json",
+              "x-admin-code": adminCode
+            }),
+            body: JSON.stringify({ date: selectedDate })
+          }
+        );
+
         await readJson(response);
+
         clearAudioPreview();
+
         setStatus("Audio eliminato. Il calendario è stato aggiornato.", "success");
+
         await loadCalendar();
+
       } catch (error) {
         setStatus(error.message, "error");
+
       } finally {
         busy = false;
         renderAdminSelection();
@@ -1223,42 +1778,72 @@
 
     replaceInput.addEventListener("change", () => {
       const file = replaceInput.files?.[0] || null;
+
       recordedBlob = null;
       selectedFile = file;
+
       if (!file) {
         updateSubmit();
         return;
       }
+
       if (file.size > CONFIG.maxUploadBytes) {
         clearAudioPreview();
         replaceInput.value = "";
         setStatus("Il file supera il limite di 5 MB.", "error");
         return;
       }
+
       showPreview(file);
+
       setStatus("Nuovo audio pronto per la sostituzione.", "success");
     });
 
+    // --------------------------------------------------
+    // NAVIGAZIONE CALENDARIO
+    // --------------------------------------------------
+
     $("#prevMonth").addEventListener("click", async () => {
-      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+      viewMonth = new Date(
+        viewMonth.getFullYear(),
+        viewMonth.getMonth() - 1,
+        1
+      );
+
       await loadCalendar();
     });
 
     $("#nextMonth").addEventListener("click", async () => {
-      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
+      viewMonth = new Date(
+        viewMonth.getFullYear(),
+        viewMonth.getMonth() + 1,
+        1
+      );
+
       await loadCalendar();
     });
+
+    // --------------------------------------------------
+    // CHIUSURA E INIZIALIZZAZIONE
+    // --------------------------------------------------
 
     window.addEventListener("pagehide", () => {
       resetRecording();
       clearInterval(reservationTimer);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     });
 
     async function initialize() {
       if (CONFIG.anonKey === "INCOLLA_LA_CHIAVE_ANON_LEGACY_QUI") {
-        setStatus("Prima di pubblicare, inserisci la chiave pubblica anon del progetto nella configurazione del file.", "error");
+        setStatus(
+          "Prima di pubblicare, inserisci la chiave pubblica anon del progetto nella configurazione del file.",
+          "error"
+        );
       }
+
       await loadCalendar();
       renderCalendar();
       updateSubmit();
