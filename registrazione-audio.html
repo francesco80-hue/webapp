@@ -1462,6 +1462,10 @@
       // Informazioni aggiuntive per il controllo amministrativo.
       form.set("recognized_date", speechRecognizedDate || "");
       form.set("speech_check_status", speechCheckStatus);
+      const measuredDuration = await measureAudioDuration(audio);
+      if (measuredDuration !== null) {
+        form.set("audio_duration_seconds", String(measuredDuration));
+      }
 
       busy = true;
       updateSubmit();
@@ -1550,6 +1554,29 @@
       } finally {
         busy = false;
         updateSubmit();
+      }
+    }
+
+    async function measureAudioDuration(audio) {
+      if (!audio) return null;
+
+      const url = URL.createObjectURL(audio);
+      try {
+        const player = new Audio();
+        player.preload = "metadata";
+        player.src = url;
+
+        await new Promise((resolve, reject) => {
+          player.onloadedmetadata = resolve;
+          player.onerror = () => reject(new Error("Metadati audio non disponibili"));
+        });
+
+        const seconds = Math.round(player.duration);
+        return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+      } catch {
+        return null;
+      } finally {
+        URL.revokeObjectURL(url);
       }
     }
 
