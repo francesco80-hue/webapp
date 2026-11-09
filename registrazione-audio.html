@@ -8,91 +8,122 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #edf3ee;
-      --panel: #fff;
-      --panel-alt: #e6f0e8;
-      --line: #c4d3c7;
-      --text: #17241c;
-      --muted: #5c6a61;
-      --green: #126b35;
-      --green-soft: #82e79a;
-      --orange: #915000;
-      --orange-soft: #ffc65c;
-      --red: #a52e26;
-      --red-soft: #ff9186;
-      --blue: #205e94;
-      --shadow: rgba(18, 30, 21, .08);
+      --bg: #edf6ef; --panel: #fff; --line: #cfe2d4;
+      --text: #101b14; --muted: #53665a; --green: #087b36;
+      --green-soft: #9bf18c; --orange-soft: #ffd36d; --red-soft: #ff9990;
+      --blue: #075bc5; --shadow: rgba(8, 63, 30, .15);
     }
-
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
-    body {
-      display: flex;
-      justify-content: center;
-      padding: max(18px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-    }
+    body { display: flex; justify-content: center; padding: 0 0 max(24px, env(safe-area-inset-bottom)); font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
     button, input { font: inherit; }
-    main { width: min(100%, 620px); display: grid; gap: 14px; }
-    .masthead { padding: 8px 2px 2px; }
-    h1 { margin: 0 0 6px; font-size: 1.8rem; line-height: 1.1; }
-    h2 { margin: 0; font-size: 1.04rem; }
-    p { margin: 0; color: var(--muted); line-height: 1.45; }
-    .panel {
-      padding: 16px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      box-shadow: 0 8px 22px rgba(18, 30, 21, .12);
+    main { width: min(100%, 1024px); display: grid; gap: 19px; padding: 0 14px 22px; }
+    .masthead {
+      position: relative; display: flex; align-items: center; gap: 16px;
+      width: calc(100% + 28px); margin: 0 -14px; padding: 16px 36px;
+      min-height: 130px; overflow: hidden; color: #fff;
+      background: linear-gradient(112deg, #188b3b 0%, #087234 48%, #00552c 100%);
+      box-shadow: 0 5px 18px rgba(0,65,30,.2);
     }
-    #instructionsSection { border-left: 5px solid var(--blue); background: #fbfdfb; }
-    #calendarSection { border-left: 5px solid var(--green); }
-    #audioPanel { border-left: 5px solid var(--orange); }
+    .masthead::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .32;
+      background:
+        radial-gradient(ellipse at 82% 40%, rgba(132,255,173,.3), transparent 28%),
+        repeating-radial-gradient(ellipse at 88% 55%, transparent 0 10px, rgba(211,255,222,.23) 11px 12px, transparent 13px 23px);
+    }
+    .masthead-icon {
+      z-index: 1; flex: 0 0 100px; width: 100px; height: 100px; display: grid; place-items: center;
+      border-radius: 50%; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+      font-size: 3.5rem; box-shadow: inset 0 0 18px rgba(255,255,255,.12), 0 4px 18px rgba(0,0,0,.12);
+    }
+    .masthead-copy { z-index: 1; min-width: 0; }
+    .masthead-icon svg { width: 62%; height: 62%; }
+    h1 { margin: 0 0 5px; font-size: clamp(2rem, 5.5vw, 3.5rem); line-height: 1.02; color: #fff; letter-spacing: -.03em; text-shadow: 0 2px 3px rgba(0,0,0,.15); }
+    .masthead p { color: #f2fff5; font-size: clamp(1rem, 2.8vw, 1.65rem); font-weight: 800; line-height: 1.15; }
+    .sound-wave { z-index: 1; margin-left: auto; display: flex; align-items: center; gap: 5px; height: 84px; opacity: .8; }
+    .sound-wave i { display: block; width: 5px; border-radius: 5px; background: #b7f3c9; box-shadow: 0 0 8px rgba(183,243,201,.45); }
+    .sound-wave i:nth-child(1), .sound-wave i:nth-child(7) { height: 20px; }
+    .sound-wave i:nth-child(2), .sound-wave i:nth-child(6) { height: 38px; }
+    .sound-wave i:nth-child(3), .sound-wave i:nth-child(5) { height: 60px; }
+    .sound-wave i:nth-child(4) { height: 82px; }
+    h2 { margin: 0; font-size: 1.65rem; color: #101b14; }
+    p { margin: 0; color: var(--muted); line-height: 1.4; }
+    .panel { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 26px; box-shadow: 0 5px 15px var(--shadow), 0 1px 2px rgba(0,0,0,.05); }
+    #collaboratorNameSection { border-left: 0; padding: 19px 28px 16px; }
+    .name-label-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+    .name-label-row label { margin: 0; font-size: 1.4rem; color: #111; }
+    .name-label-row label strong { font-size: 1.55rem; }
+    .name-label-row label span { font-weight: 400; }
+    .person-icon { display: inline-flex; width: 42px; height: 42px; color: #087b36; line-height: 1; flex: 0 0 auto; }
+    .person-icon svg, .calendar-icon svg, .section-mic svg { width: 100%; height: 100%; }
+    #collaboratorNameSection .small { margin: 7px 0 0 58px; font-size: .83rem; }
+    #instructionsSection { border-left: 5px solid #6b9b7a; background: #fbfefb; }
+    #calendarSection { border-left: 0; padding: 17px 24px 24px; }
+    #audioPanel { border-left: 0; padding: 20px 24px; }
     #reservationActions { border-left: 5px solid var(--blue); }
-    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; padding: 0; list-style: none; color: var(--muted); font-size: .86rem; }
-    .legend li { display: inline-flex; align-items: center; gap: 7px; }
-    .dot { width: 11px; height: 11px; border-radius: 50%; }
-    .dot.green { background: var(--green-soft); border: 1px solid var(--green); }
-    .dot.orange { background: var(--orange-soft); border: 1px solid var(--orange); }
-    .dot.red { background: var(--red-soft); border: 1px solid var(--red); }
-    .month-controls { display: flex; gap: 7px; }
-    .icon-button {
-      width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px;
-      background: var(--panel); color: var(--text); font-size: 1.25rem; cursor: pointer;
-    }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
-    .weekday { padding: 3px 0; color: var(--muted); text-align: center; font-size: .7rem; text-transform: uppercase; }
-    .day, .calendar-spacer { min-width: 0; min-height: 48px; border-radius: 8px; }
-    .calendar-spacer { border: 1px solid transparent; }
-    .day { border: 1px solid var(--line); background: #fff; color: var(--text); font-weight: 700; cursor: pointer; }
-    .day.green { background: var(--green-soft); border-color: #18813c; }
-    .day.orange { background: var(--orange-soft); border-color: #b66a00; }
-    .day.red { background: var(--red-soft); border-color: #b9372e; }
-    .day.muted { background: #f1f3f1; color: #839087; }
-    .day.today { box-shadow: inset 0 0 0 2px #77a6d0; }
-    .day.selected { outline: 2px solid var(--blue); outline-offset: 1px; }
-    .day:disabled { opacity: .86; cursor: not-allowed; }
-    label { display: block; margin-bottom: 7px; font-weight: 700; }
-    .field, input[type="file"] {
-      width: 100%; min-height: 48px; padding: 11px 12px; border: 1px solid var(--line);
-      border-radius: 8px; background: #fbfcfb; color: var(--text);
-    }
+    .calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 15px; }
+    .calendar-heading h2 { display: flex; align-items: center; gap: 13px; white-space: nowrap; }
+    .calendar-icon { display: inline-flex; width: 46px; height: 46px; color: #087b36; line-height: 1; flex: 0 0 auto; }
+    .month-controls { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .icon-button { width: 54px; height: 54px; flex: 0 0 auto; border: 2px solid #159447; border-radius: 15px; background: #f8fff9; color: #086b31; font-size: 2rem; cursor: pointer; line-height: 1; }
+    #monthLabel { margin: 0; padding: 10px 18px; min-width: 250px; text-align: center; border-radius: 14px; background: #e0f1e5; color: #102318; font-size: 1.45rem; font-weight: 900; text-transform: capitalize; }
+    .legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 18px; margin: 0 0 17px; padding: 14px 10px; list-style: none; color: #111; font-size: 1rem; border-top: 1px solid #e8f0ea; }
+    .legend li { display: inline-flex; align-items: center; gap: 10px; }
+    .legend li > span:last-child { display: grid; gap: 1px; }
+    .legend strong { font-size: 1.02rem; }
+    .legend small { font-size: .86rem; font-weight: 400; color: #202820; }
+    .dot { width: 45px; height: 45px; flex: 0 0 45px; border-radius: 12px; }
+    .dot.green { background: #9bf18c; border: 3px solid #36c847; }
+    .dot.orange { background: #ffd36d; border: 3px solid #df8a00; }
+    .dot.red { background: #ff9990; border: 3px solid #ed3e35; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 9px; }
+    .weekday { padding: 10px 0; color: #101b14; text-align: center; font-size: 1rem; font-weight: 900; text-transform: uppercase; background: #e1f1e5; border-radius: 12px; }
+    .day, .calendar-spacer { min-width: 0; min-height: 70px; border-radius: 15px; }
+    .calendar-spacer { border: 1px solid transparent; background: #f3f4f3; }
+    .day { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 2px solid #d9dfda; background: #fff; color: #101b14; font-weight: 800; cursor: pointer; padding: 3px 1px; }
+    .day.green { background: #9bf18c; border-color: #43d44e; color: #092a11; }
+    .day.orange { background: #ffd36d; border-color: #e18a00; color: #3c2607; }
+    .day.red { background: #ff9990; border-color: #ed3e35; color: #40100d; }
+    .day.muted { background: #f0f1f0; color: #8b948d; }
+    .day-number { font-size: 1.75rem; line-height: 1.05; }
+    .day-today-label { padding: 3px 9px; border-radius: 6px; background: #075bc5; color: white; font-size: .82rem; line-height: 1.1; font-weight: 900; letter-spacing: .03em; }
+    .day.today { border: 5px solid #075bc5 !important; box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(7,91,197,.16); }
+    .day.selected { outline: 2px solid #123f70; outline-offset: 2px; }
+    .day:disabled { opacity: .88; cursor: not-allowed; }
+    label { display: block; margin-bottom: 7px; font-weight: 800; color: #14251a; }
+    .field, input[type="file"] { width: 100%; min-height: 56px; padding: 12px 16px; border: 2px solid #087b36; border-radius: 16px; background: #fff; color: var(--text); font-size: 1.2rem; }
     .field[readonly] { color: var(--muted); }
-    .small { margin-top: 8px; font-size: .83rem; }
-    .record-wrap { display: grid; justify-items: center; gap: 10px; padding: 10px 0; }
-    .record-button {
-      width: 132px; height: 132px; border: 7px solid #62bd78; border-radius: 50%;
-      background: #82e79a; color: #12351e; font-weight: 800; cursor: pointer;
-    }
-    .record-button.recording { background: #ff9186; border-color: #d84b40; color: #4b1f1b; }
-    .record-button:disabled { opacity: .5; cursor: not-allowed; }
+    .small { margin-top: 8px; font-size: .88rem; }
+    .audio-heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 10px; }
+    .section-mic { display: inline-flex; width: 46px; height: 54px; line-height: 1; color: #087b36; flex: 0 0 auto; }
+    .audio-heading h2 { font-size: 1.7rem; }
+    .selected-date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+    .selected-date-row label { margin: 0; font-size: 1.15rem; font-weight: 500; }
+    .date-chip { width: auto; min-height: 34px; padding: 4px 10px; border: 0; border-radius: 10px; background: #e0f1e5; color: #102318; font-size: 1.15rem; font-weight: 900; }
+    .audio-options { display: grid; grid-template-columns: minmax(0, 1fr) 2px minmax(0, 1fr); align-items: center; gap: 28px; padding: 8px 6px 14px; }
+    .record-column { display: grid; justify-items: center; gap: 9px; min-width: 0; }
+    .record-wrap { display: contents; }
+    .record-button { position: relative; display: grid; place-items: end center; width: 218px; height: 218px; padding: 0 8px 32px; border: 9px solid #b9f4c7; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #75f294, #12a94b 72%); color: #073b1b; font-weight: 900; cursor: pointer; box-shadow: 0 8px 0 #087b35, 0 13px 24px rgba(5,90,39,.24); transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+    .record-button::before { content: "🎙"; position: absolute; top: 38px; left: 0; right: 0; font-size: 5rem; line-height: 1; text-align: center; filter: drop-shadow(0 2px 1px rgba(0,0,0,.12)); }
+    .record-button:active { transform: translateY(4px); box-shadow: 0 4px 0 #087b35, 0 7px 14px rgba(5,90,39,.2); }
+    .record-button.recording { border-color: #ffd1cd; background: radial-gradient(circle at 35% 25%, #ff9a91, #e33229 75%); color: #4b100d; box-shadow: 0 8px 0 #a51d17, 0 13px 24px rgba(160,30,24,.24); }
+    .record-button.recording::before { content: "■"; top: 40px; font-size: 4.4rem; }
+    .record-button:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.25); box-shadow: none; }
+    #recordHint { text-align: center; max-width: 270px; }
+    .microphone-controls { display: grid; justify-items: center; gap: 8px; margin: 4px 0 0; }
+    .microphone-controls .button { border-color: var(--blue); color: var(--blue); }
+    .audio-divider { width: 2px; height: 145px; background: #d8e7dc; }
+    .file-upload-area { display: grid; justify-items: center; gap: 13px; margin: 0; text-align: center; }
+    .file-upload-area label:first-child { margin: 0; font-size: 1.35rem; line-height: 1.3; }
+    .file-choice-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-width: 250px; min-height: 68px; padding: 12px 22px; border: 2px solid #087b36; border-radius: 18px; background: #f8fff9; color: #086b31; font-size: 1.35rem; font-weight: 800; cursor: pointer; }
+    .file-choice-button span { display: inline-flex; width: 30px; height: 30px; line-height: 1; }
+    .file-choice-button span svg { width: 100%; height: 100%; }
+    #fileInput { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .audio-tip { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 13px; background: #e1f1e5; color: #15271a; font-size: 1.1rem; }
+    .audio-tip span { font-size: 1.8rem; color: #087b36; line-height: 1; }
     audio { display: none; width: 100%; margin-top: 12px; }
     .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-    .button {
-      min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
-      background: #fff; color: var(--text); font-weight: 700; cursor: pointer;
-    }
+    .button { min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--text); font-weight: 700; cursor: pointer; }
     .button.primary { border-color: #12552e; background: #176b3a; color: #fff; }
     .button.danger { border-color: #d6aaa5; color: #902f28; }
     .button:disabled { opacity: .5; cursor: not-allowed; }
@@ -101,53 +132,94 @@
     .status.error { color: #a52e26; }
     .status.success { color: #236a3d; }
     .admin-panel { display: grid; gap: 12px; }
-    .admin-meta { padding: 10px; border-radius: 8px; background: var(--panel-alt); font-size: .9rem; }
-    details.panel > summary { cursor: pointer; font-weight: 700; }
+    .admin-meta { padding: 10px; border-radius: 8px; background: #e1f1e5; font-size: .9rem; }
+    details.panel > summary { cursor: pointer; font-weight: 800; color: #145c30; }
     details.panel[open] > summary { margin-bottom: 14px; }
     .instructions-content { display: grid; gap: 14px; }
     .instructions-content h3 { margin: 0 0 6px; font-size: .95rem; }
     .instructions-content ul, .instructions-content ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.5; }
     .instructions-content a { color: var(--blue); }
-    .microphone-controls { display: grid; gap: 8px; margin: 4px 0 12px; }
-    .microphone-controls .button { border-color: var(--blue); color: var(--blue); }
-    .microphone-dialog {
-      position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
-      padding: 16px; background: rgba(15, 27, 19, .72);
-    }
-    .microphone-dialog-panel {
-      width: min(100%, 520px); max-height: min(88vh, 720px); overflow-y: auto;
-      padding: 20px; border: 2px solid #205e94; border-radius: 12px;
-      background: #fff; box-shadow: 0 18px 50px rgba(0, 0, 0, .3);
-    }
+    .microphone-dialog { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(15, 27, 19, .72); }
+    .microphone-dialog-panel { width: min(100%, 520px); max-height: min(88vh, 720px); overflow-y: auto; padding: 20px; border: 2px solid #205e94; border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgba(0, 0, 0, .3); }
     .microphone-dialog-panel h2 { margin-bottom: 8px; }
     .microphone-choices { display: grid; gap: 9px; margin: 16px 0; }
-    .microphone-choice {
-      width: 100%; min-height: 62px; padding: 12px 14px; border: 2px solid #b5c7d7;
-      border-radius: 9px; background: #f0f7ff; color: #173651; text-align: left;
-      font-weight: 700; cursor: pointer;
-    }
+    .microphone-choice { width: 100%; min-height: 62px; padding: 12px 14px; border: 2px solid #b5c7d7; border-radius: 12px; background: #f0f7ff; color: #173651; text-align: left; font-weight: 700; cursor: pointer; }
     .microphone-choice[aria-pressed="true"] { border-color: #146b37; background: #a7efb5; color: #12351e; }
     .microphone-choice span { display: block; margin-top: 3px; font-size: .84rem; font-weight: 400; }
     .hidden { display: none !important; }
-    @media (max-width: 380px) {
-      .panel { padding: 13px; }
+    @media (max-width: 700px) {
+      main { padding-left: 9px; padding-right: 9px; gap: 12px; }
+      .masthead { width: calc(100% + 18px); margin-left: -9px; margin-right: -9px; padding: 13px 12px; gap: 10px; min-height: 105px; }
+      .masthead-icon { flex-basis: 62px; width: 62px; height: 62px; font-size: 2.2rem; }
+      .sound-wave { gap: 3px; }
+      .sound-wave i { width: 3px; }
+      .panel { padding: 14px; border-radius: 18px; }
+      #collaboratorNameSection { padding: 14px 15px 12px; }
+      .name-label-row { gap: 9px; margin-bottom: 8px; }
+      .name-label-row label, .name-label-row label strong { font-size: 1.05rem; }
+      .person-icon { width: 32px; height: 32px; }
+      #collaboratorNameSection .small { margin-left: 42px; }
+      #calendarSection { padding: 13px 10px 16px; }
+      .calendar-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .calendar-heading h2 { font-size: 1.2rem; }
+      .calendar-icon { width: 34px; height: 34px; }
+      .month-controls { width: 100%; justify-content: center; gap: 8px; }
+      .icon-button { width: 40px; height: 40px; border-radius: 11px; font-size: 1.55rem; }
+      #monthLabel { min-width: 0; flex: 1; max-width: 250px; padding: 8px 7px; font-size: 1rem; }
+      .legend { justify-content: flex-start; gap: 10px 14px; padding: 10px 2px; font-size: .85rem; }
+      .legend li { flex: 1 1 42%; gap: 7px; }
+      .dot { width: 31px; height: 31px; flex-basis: 31px; border-radius: 8px; }
+      .legend strong { font-size: .88rem; }
+      .legend small { font-size: .72rem; }
       .calendar-grid { gap: 5px; }
-      .day, .calendar-spacer { min-height: 43px; }
-      .record-button { width: 120px; height: 120px; }
+      .weekday { font-size: .7rem; padding: 7px 0; }
+      .day, .calendar-spacer { min-height: 52px; border-radius: 9px; }
+      .day-number { font-size: 1.1rem; }
+      .day-today-label { font-size: .57rem; padding: 2px 5px; }
+      #audioPanel { padding: 15px; }
+      .audio-heading h2 { font-size: 1.25rem; }
+      .section-mic { width: 32px; height: 38px; }
+      .selected-date-row label, .date-chip { font-size: .9rem; }
+      .audio-options { gap: 12px; padding: 8px 0 13px; }
+      .record-button { width: 136px; height: 136px; padding-bottom: 20px; }
+      .record-button::before { top: 22px; font-size: 3.1rem; }
+      .record-button.recording::before { top: 24px; font-size: 2.7rem; }
+      .audio-divider { height: 112px; }
+      .file-upload-area label:first-child { font-size: 1rem; }
+      .file-choice-button { min-width: 0; width: 100%; min-height: 52px; padding: 8px 10px; font-size: .95rem; gap: 6px; }
+      .file-choice-button span { width: 22px; height: 22px; }
+      .audio-tip { padding: 9px 11px; font-size: .86rem; gap: 8px; }
+      .audio-tip span { font-size: 1.4rem; }
+    }
+    @media (max-width: 380px) {
+      .sound-wave { display: none; }
+      .day, .calendar-spacer { min-height: 45px; }
+      .legend li { flex-basis: 100%; }
+      .audio-options { grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); gap: 8px; }
+      .record-button { width: 116px; height: 116px; }
+      .record-button::before { top: 18px; font-size: 2.7rem; }
+      .file-choice-button { font-size: .83rem; }
     }
   </style>
 </head>
 <body>
   <main>
     <header class="masthead">
-      <h1>Archivio audio</h1>
-      <p>Seleziona una data libera, registra dal microfono o scegli un file audio.</p>
+      <div class="masthead-icon" aria-hidden="true"><svg viewBox="0 0 64 64" role="img"><rect x="24" y="7" width="16" height="34" rx="8" fill="white"/><path d="M15 29v4a17 17 0 0 0 34 0v-4M32 50v8M22 58h20" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/></svg></div>
+      <div class="masthead-copy">
+        <h1>Archivio audio</h1>
+        <p>Scritture del giorno – Registrazioni audio</p>
+      </div>
+      <div class="sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </header>
 
-    <section id="collaboratorNameSection" class="panel">
-      <label for="readerNameInput">Nome da mostrare nell’archivio</label>
-      <input id="readerNameInput" class="field" type="text" autocomplete="name" maxlength="100" required>
-      <p class="small">Il nome verrà ricordato su questo dispositivo e comparirà nel gruppo archivio privato.</p>
+    <section id="collaboratorNameSection" class="panel name-panel">
+      <div class="name-label-row">
+        <span class="person-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="4"/><path d="M7 42v-5c0-8 7-13 17-13s17 5 17 13v5H7Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg></span>
+        <label for="readerNameInput"><strong>Il tuo nome</strong> <span>(da mostrare nell’archivio)</span></label>
+      </div>
+      <input id="readerNameInput" class="field name-field" type="text" autocomplete="name" maxlength="100" required>
+      <p class="small">Il nome verrà ricordato su questo dispositivo.</p>
     </section>
 
     <details id="instructionsSection" class="panel">
@@ -187,39 +259,50 @@
     </details>
 
     <section id="calendarSection" class="panel" aria-labelledby="calendarTitle">
-      <div class="panel-heading">
-        <h2 id="calendarTitle">Calendario</h2>
+      <div class="calendar-heading">
+        <h2 id="calendarTitle"><span class="calendar-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="10" width="36" height="32" rx="5" fill="none" stroke="currentColor" stroke-width="4"/><path d="M15 5v10M33 5v10M7 20h34" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M16 28h3M29 28h3M16 35h3M29 35h3" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></span>Scegli la data</h2>
         <div class="month-controls">
           <button id="prevMonth" class="icon-button" type="button" aria-label="Mese precedente">‹</button>
+          <p id="monthLabel" class="month-label"></p>
           <button id="nextMonth" class="icon-button" type="button" aria-label="Mese successivo">›</button>
         </div>
       </div>
       <ul class="legend" aria-label="Legenda calendario">
-        <li><span class="dot green"></span>Libera</li>
-        <li><span class="dot orange"></span>Riservata</li>
-        <li><span class="dot red"></span>Registrata</li>
+        <li><span class="dot green"></span><span><strong>Disponibile</strong><small>Puoi prenotare</small></span></li>
+        <li><span class="dot orange"></span><span><strong>Prenotata</strong><small>In attesa di registrazione</small></span></li>
+        <li><span class="dot red"></span><span><strong>Registrata</strong><small>Audio già presente</small></span></li>
       </ul>
-      <p id="monthLabel" class="small"></p>
       <div id="calendar" class="calendar-grid" aria-live="polite"></div>
     </section>
 
-    <section class="panel">
-      <label for="dateInput">Data selezionata</label>
-      <input id="dateInput" class="field" type="date" readonly>
-    </section>
-
     <section id="audioPanel" class="panel">
-      <h2>Prepara l’audio</h2>
-      <div class="record-wrap">
-        <button id="recordBtn" class="record-button" type="button" disabled>Registra</button>
-        <p id="recordHint" class="small">Seleziona prima una data libera.</p>
+      <div class="audio-heading">
+        <span class="section-mic" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="18" y="4" width="12" height="26" rx="6" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M10 22v3a14 14 0 0 0 28 0v-3M24 39v6M16 45h16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></span>
+        <div>
+          <h2>Registra il tuo audio</h2>
+          <div class="selected-date-row">
+            <label for="dateInput">Data selezionata:</label>
+            <input id="dateInput" class="field date-chip" type="date" readonly>
+          </div>
+        </div>
       </div>
-      <div class="microphone-controls">
-        <p id="selectedMicrophoneLabel" class="small hidden"></p>
-        <button id="changeMicrophoneBtn" class="button hidden" type="button">Cambia microfono</button>
+      <div class="audio-options">
+        <div class="record-column">
+          <button id="recordBtn" class="record-button" type="button" disabled>Registra</button>
+          <p id="recordHint" class="small">Seleziona prima una data libera.</p>
+          <div class="microphone-controls">
+            <p id="selectedMicrophoneLabel" class="small hidden"></p>
+            <button id="changeMicrophoneBtn" class="button hidden" type="button">Cambia microfono</button>
+          </div>
+        </div>
+        <div class="audio-divider" aria-hidden="true"></div>
+        <div class="file-upload-area">
+          <label for="fileInput">Oppure carica<br>un file audio</label>
+          <label class="file-choice-button" for="fileInput"><span aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 21V4m0 0-7 7m7-7 7 7M5 19v8h22v-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Scegli file</label>
+          <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr" disabled>
+        </div>
       </div>
-      <label for="fileInput">Oppure scegli un file audio</label>
-      <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.3gp,.amr" disabled>
+      <div class="audio-tip"><span aria-hidden="true">ⓘ</span> Dopo la registrazione potrai ascoltare, confermare e inviare l’audio.</div>
       <audio id="audioPlayer" controls playsinline></audio>
       <div id="microphoneDialog" class="microphone-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="microphoneDialogTitle">
         <section class="microphone-dialog-panel">
@@ -299,6 +382,9 @@
     const reservationInfo = $("#reservationInfo");
     const sendBtn = $("#sendBtn");
     const adminToggle = $("#adminToggle");
+    // L'accesso amministratore compare solo aprendo il link personale con ?admin=1.
+    const adminAccessEnabled = new URLSearchParams(window.location.search).get("admin") === "1";
+    if (!adminAccessEnabled) adminToggle.classList.add("hidden");
     const adminLogin = $("#adminLogin");
     const adminCodeInput = $("#adminCode");
     const adminSession = $("#adminSession");
@@ -566,11 +652,21 @@
         const button = document.createElement("button");
         button.type = "button";
         button.className = `day ${state}${date === selectedDate ? " selected" : ""}${date === toIso(new Date()) ? " today" : ""}`;
-        button.textContent = String(day);
-        button.setAttribute("aria-label", `${date}, ${state}`);
+        const dayNumber = document.createElement("span");
+        dayNumber.className = "day-number";
+        dayNumber.textContent = String(day);
+        button.appendChild(dayNumber);
+        const isToday = date === toIso(new Date());
+        if (isToday) {
+          const todayLabel = document.createElement("span");
+          todayLabel.className = "day-today-label";
+          todayLabel.textContent = "OGGI";
+          button.appendChild(todayLabel);
+        }
+        button.setAttribute("aria-label", `${date}, ${state}${isToday ? ", oggi" : ""}`);
         button.disabled = calendarFailed || (adminCode
           ? state === "muted"
-          : state !== "green" || date < CONFIG.minCollaboratorDate || !getReaderName());
+          : state !== "green" || date < CONFIG.minCollaboratorDate);
         button.addEventListener("click", () => chooseDate(date, state));
         calendarEl.appendChild(button);
       }
@@ -589,8 +685,8 @@
       }
 
       if (!getReaderName()) {
+        window.alert("Per prenotare questa data, inserisci prima il tuo nome.");
         readerNameInput.focus();
-        setStatus("Inserisci il nome da mostrare nell’archivio prima di scegliere una data.", "error");
         return;
       }
 
@@ -1032,7 +1128,7 @@
       adminCode = "";
       adminItems.clear();
       adminSession.classList.add("hidden");
-      adminToggle.classList.remove("hidden");
+      adminToggle.classList.toggle("hidden", !adminAccessEnabled);
       collaboratorNameSection.classList.remove("hidden");
       selectedDate = "";
       dateInput.value = "";
