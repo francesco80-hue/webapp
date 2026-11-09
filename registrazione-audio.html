@@ -425,6 +425,9 @@
     let recordingStream = null;
     let audioChunks = [];
     let recordedBlob = null;
+    let recordingStartedAt = 0;
+    let recordingTimer = null;
+    let recordedDurationSeconds = null;
     let selectedFile = null;
     let previewUrl = "";
     let adminCode = "";
@@ -1170,6 +1173,11 @@
 
     function resetRecording() {
       stopSpeechDateCheck();
+      if (recordingTimer) clearInterval(recordingTimer);
+      recordingTimer = null;
+      recordingStartedAt = 0;
+      recordedDurationSeconds = null;
+      recordHint.textContent = "";
 
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
@@ -1299,6 +1307,12 @@
 
         mediaRecorder.addEventListener("stop", () => {
           stopSpeechDateCheck();
+          if (recordingTimer) clearInterval(recordingTimer);
+          recordingTimer = null;
+          recordedDurationSeconds = recordingStartedAt
+            ? Math.max(0, Math.round((Date.now() - recordingStartedAt) / 1000))
+            : null;
+          recordingStartedAt = 0;
 
           const type = mediaRecorder?.mimeType || "audio/webm";
           recordedBlob = new Blob(audioChunks, { type });
@@ -1328,13 +1342,22 @@
         }, { once: true });
 
         mediaRecorder.start();
+        recordingStartedAt = Date.now();
+        recordedDurationSeconds = null;
+        const updateRecordingClock = () => {
+          const elapsed = Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000));
+          const minutes = Math.floor(elapsed / 60);
+          const seconds = elapsed % 60;
+          recordHint.textContent = `Registrazione in corso... ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        };
+        updateRecordingClock();
+        recordingTimer = setInterval(updateRecordingClock, 250);
 
         // Avvia il riconoscimento della data pronunciata nei primi 15 secondi.
         startSpeechDateCheck();
 
         recordBtn.textContent = "Ferma";
         recordBtn.classList.add("recording");
-        recordHint.textContent = "Registrazione in corso...";
         setStatus("");
 
       } catch (error) {
@@ -1560,22 +1583,29 @@
     async function measureAudioDuration(audio) {
       if (!audio) return null;
 
+      // Per le registrazioni dal microfono è più affidabile il tempo reale
+      // trascorso tra MediaRecorder.start() e MediaRecorder.stop().
+      if (audio === recordedBlob && Number.isFinite(recordedDurationSeconds)) {
+        return recordedDurationSeconds;
+      }
+
       const url = URL.createObjectURL(audio);
+      const player = new Audio();
       try {
-        const player = new Audio();
         player.preload = "metadata";
         player.src = url;
-
         await new Promise((resolve, reject) => {
           player.onloadedmetadata = resolve;
           player.onerror = () => reject(new Error("Metadati audio non disponibili"));
+          player.load();
         });
-
-        const seconds = Math.round(player.duration);
-        return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+        const seconds = player.duration;
+        return Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : null;
       } catch {
         return null;
       } finally {
+        player.removeAttribute("src");
+        player.load();
         URL.revokeObjectURL(url);
       }
     }
