@@ -645,44 +645,32 @@
       dicembre: "12"
     };
 
+    // Giorni pronunciati in lettere, dal riconoscimento vocale italiano.
+    const italianDayWords = { uno: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16, diciassette: 17, diciotto: 18, diciannove: 19, venti: 20, ventuno: 21, ventidue: 22, ventitre: 23, ventitré: 23, ventiquattro: 24, venticinque: 25, ventisei: 26, ventisette: 27, ventotto: 28, ventinove: 29, trenta: 30, trentuno: 31 };
+
     function parseSpokenDate(text) {
       if (!text) return "";
-
-      const normalized = text
-        .toLowerCase()
-        .replace(/[.,;!?]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      // Formato numerico: 15/11/2026 oppure 15-11-2026
+      const normalized = text.toLowerCase().replace(/[.,;!?]/g, " ").replace(/\s+/g, " ").trim();
       let match = normalized.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](20\d{2}))?\b/);
-
       if (match) {
-        const day = Number(match[1]);
-        const month = Number(match[2]);
         const year = Number(match[3] || selectedDate.slice(0, 4));
-
-        return makeRecognizedDate(year, month, day);
+        return makeRecognizedDate(year, Number(match[2]), Number(match[1]));
       }
-
-      // Formato parlato: 15 novembre 2026
+      const dayAlternatives = Object.keys(italianDayWords).sort((a, b) => b.length - a.length).join("|");
       for (const [monthName, monthNumber] of Object.entries(italianMonths)) {
-        const escapedMonth = monthName;
-        const expression = new RegExp(
-          `\\b(\\d{1,2})\\s+(?:di\\s+)?${escapedMonth}\\s*(20\\d{2})?\\b`,
-          "i"
-        );
-
-        match = normalized.match(expression);
-
+        const numericExpression = new RegExp("\\b(\\d{1,2})\\s+(?:di\\s+)?" + monthName + "\\s*(20\\d{2})?\\b", "i");
+        match = normalized.match(numericExpression);
         if (match) {
-          const day = Number(match[1]);
           const year = Number(match[2] || selectedDate.slice(0, 4));
-
-          return makeRecognizedDate(year, Number(monthNumber), day);
+          return makeRecognizedDate(year, Number(monthNumber), Number(match[1]));
+        }
+        const wordExpression = new RegExp("\\b(" + dayAlternatives + ")\\s+(?:di\\s+)?" + monthName + "\\s*(20\\d{2})?\\b", "i");
+        match = normalized.match(wordExpression);
+        if (match) {
+          const year = Number(match[2] || selectedDate.slice(0, 4));
+          return makeRecognizedDate(year, Number(monthNumber), italianDayWords[match[1]]);
         }
       }
-
       return "";
     }
 
